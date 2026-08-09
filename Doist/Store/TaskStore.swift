@@ -21,6 +21,10 @@ final class TaskStore: ObservableObject {
         tasks.filter { !$0.isCompleted && TaskSection.today.contains($0.dueDate) }.count
     }
 
+    var openCount: Int {
+        tasks.filter { !$0.isCompleted }.count
+    }
+
     var parsedDraft: TaskDraft? {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return nil }

@@ -83,6 +83,10 @@ struct MenuBarContentView: View {
 
     private var footer: some View {
         HStack {
+            Text("\(taskStore.openCount) open")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.tertiary)
+
             Spacer()
 
             Button {
@@ -94,10 +98,10 @@ struct MenuBarContentView: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: Circle())
             .help("Settings")
         }
-        .padding(.horizontal, 14)
+        .padding(.leading, 20)
+        .padding(.trailing, 14)
         .frame(height: 42)
         .overlay(alignment: .top) { Divider() }
     }
