@@ -41,6 +41,7 @@ struct MenuBarContentView: View {
             footer
         }
         .frame(width: 536, height: 548)
+        .background(.thickMaterial)
         .animation(feedbackAnimation, value: taskStore.parsedDraft != nil)
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
         .onAppear {
