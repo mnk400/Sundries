@@ -25,7 +25,7 @@ enum MenuBarCountMode: String, CaseIterable, Identifiable {
 }
 
 @main
-struct DoistApp: App {
+struct SundriesApp: App {
     @StateObject private var taskStore = TaskStore()
     @AppStorage(MenuBarCountMode.storageKey) private var menuBarCountModeRawValue = MenuBarCountMode.dueToday.rawValue
 
@@ -73,7 +73,7 @@ private struct MenuBarLabelView: View {
         Image(nsImage: renderedPill)
             .renderingMode(.original)
             .accessibilityLabel(
-                "Doist, \(overdueCount) overdue and \(secondaryCount) \(secondaryCountDescription)"
+                "Sundries, \(overdueCount) overdue and \(secondaryCount) \(secondaryCountDescription)"
             )
     }
 

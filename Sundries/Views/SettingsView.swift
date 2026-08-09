@@ -102,7 +102,7 @@ struct SettingsView: View {
                 preferenceGroup {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Open Doist")
+                            Text("Open Sundries")
                             Text("Global shortcut wiring is the next infrastructure step.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

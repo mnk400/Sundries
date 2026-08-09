@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E00000000000000000000001"
-               BuildableName = "Doist.app"
-               BlueprintName = "Doist"
-               ReferencedContainer = "container:Doist.xcodeproj">
+               BuildableName = "Sundries.app"
+               BlueprintName = "Sundries"
+               ReferencedContainer = "container:Sundries.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,9 +43,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E00000000000000000000001"
-            BuildableName = "Doist.app"
-            BlueprintName = "Doist"
-            ReferencedContainer = "container:Doist.xcodeproj">
+            BuildableName = "Sundries.app"
+            BlueprintName = "Sundries"
+            ReferencedContainer = "container:Sundries.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -59,9 +59,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E00000000000000000000001"
-            BuildableName = "Doist.app"
-            BlueprintName = "Doist"
-            ReferencedContainer = "container:Doist.xcodeproj">
+            BuildableName = "Sundries.app"
+            BlueprintName = "Sundries"
+            ReferencedContainer = "container:Sundries.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

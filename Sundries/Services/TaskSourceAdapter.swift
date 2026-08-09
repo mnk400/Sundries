@@ -1,6 +1,6 @@
 import Foundation
 
-/// A storage integration translates its native task format into Doist's shared model.
+/// A storage integration translates its native task format into Sundries's shared model.
 /// Markdown is the first implementation; Apple Reminders can conform without changing the UI.
 protocol TaskSourceAdapter: Sendable {
     var descriptor: TaskSourceDescriptor { get }

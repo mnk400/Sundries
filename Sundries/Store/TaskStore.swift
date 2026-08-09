@@ -343,7 +343,7 @@ final class TaskStore: ObservableObject {
                 note: "Markdown first, Apple Reminders second",
                 dueDate: date(dayOffset: 0, hour: 16),
                 sourceID: TaskSourceDescriptor.markdown.id,
-                context: "Doist.md"
+                context: "Sundries.md"
             ),
             TaskItem(
                 title: "Choose a folder for Markdown tasks",
@@ -360,7 +360,7 @@ final class TaskStore: ObservableObject {
             TaskItem(
                 title: "Define a lossless Markdown editing policy",
                 sourceID: TaskSourceDescriptor.markdown.id,
-                context: "Doist.md"
+                context: "Sundries.md"
             )
         ]
     }

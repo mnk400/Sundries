@@ -339,7 +339,7 @@ enum MarkdownSourceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .cannotReadFolder:
-            "Doist couldn't read that Markdown folder."
+            "Sundries couldn't read that Markdown folder."
         case .invalidDestination:
             "That Markdown destination is no longer available."
         case .missingLocation:

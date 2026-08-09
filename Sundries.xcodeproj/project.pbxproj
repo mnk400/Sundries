@@ -6,7 +6,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B00000000000000000000001 /* DoistApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* DoistApp.swift */; };
+		B00000000000000000000001 /* SundriesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* SundriesApp.swift */; };
 		B00000000000000000000002 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* TaskItem.swift */; };
 		B00000000000000000000003 /* TaskSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* TaskSource.swift */; };
 		B00000000000000000000004 /* TaskDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* TaskDraftParser.swift */; };
@@ -22,7 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A00000000000000000000001 /* DoistApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoistApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000001 /* SundriesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SundriesApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* TaskItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskItem.swift; sourceTree = "<group>"; };
 		A00000000000000000000003 /* TaskSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSource.swift; sourceTree = "<group>"; };
 		A00000000000000000000004 /* TaskDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDraftParser.swift; sourceTree = "<group>"; };
@@ -32,8 +32,8 @@
 		A00000000000000000000008 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
 		A00000000000000000000009 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A0000000000000000000000B /* Doist.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Doist.entitlements; sourceTree = "<group>"; };
-		A0000000000000000000000C /* Doist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doist.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0000000000000000000000B /* Sundries.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sundries.entitlements; sourceTree = "<group>"; };
+		A0000000000000000000000C /* Sundries.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sundries.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000000000000000000D /* MarkdownFolderBookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFolderBookmark.swift; sourceTree = "<group>"; };
 		A0000000000000000000000E /* MarkdownTaskSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTaskSource.swift; sourceTree = "<group>"; };
 		A0000000000000000000000F /* DrawerMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerMotion.swift; sourceTree = "<group>"; };
@@ -52,22 +52,22 @@
 		C00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000002 /* Doist */,
+				C00000000000000000000002 /* Sundries */,
 				C00000000000000000000007 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		C00000000000000000000002 /* Doist */ = {
+		C00000000000000000000002 /* Sundries */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000001 /* DoistApp.swift */,
+				A00000000000000000000001 /* SundriesApp.swift */,
 				C00000000000000000000003 /* Models */,
 				C00000000000000000000004 /* Services */,
 				C00000000000000000000005 /* Store */,
 				C00000000000000000000006 /* Views */,
-				A0000000000000000000000B /* Doist.entitlements */,
+				A0000000000000000000000B /* Sundries.entitlements */,
 			);
-			path = Doist;
+			path = Sundries;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000003 /* Models */ = {
@@ -113,7 +113,7 @@
 		C00000000000000000000007 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A0000000000000000000000C /* Doist.app */,
+				A0000000000000000000000C /* Sundries.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,9 +121,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E00000000000000000000001 /* Doist */ = {
+		E00000000000000000000001 /* Sundries */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Doist" */;
+			buildConfigurationList = F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Sundries" */;
 			buildPhases = (
 				G00000000000000000000001 /* Sources */,
 				G00000000000000000000002 /* Frameworks */,
@@ -131,9 +131,9 @@
 			);
 			buildRules = ();
 			dependencies = ();
-			name = Doist;
-			productName = Doist;
-			productReference = A0000000000000000000000C /* Doist.app */;
+			name = Sundries;
+			productName = Sundries;
+			productReference = A0000000000000000000000C /* Sundries.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -151,7 +151,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F00000000000000000000001 /* Build configuration list for PBXProject "Doist" */;
+			buildConfigurationList = F00000000000000000000001 /* Build configuration list for PBXProject "Sundries" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -160,7 +160,7 @@
 			productRefGroup = C00000000000000000000007 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			targets = (E00000000000000000000001 /* Doist */);
+			targets = (E00000000000000000000001 /* Sundries */);
 		};
 /* End PBXProject section */
 
@@ -178,7 +178,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B00000000000000000000001 /* DoistApp.swift in Sources */,
+				B00000000000000000000001 /* SundriesApp.swift in Sources */,
 				B00000000000000000000002 /* TaskItem.swift in Sources */,
 				B00000000000000000000003 /* TaskSource.swift in Sources */,
 				B00000000000000000000004 /* TaskDraftParser.swift in Sources */,
@@ -296,7 +296,7 @@
 		F00000000000000000000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Doist/Doist.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Sundries/Sundries.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -307,7 +307,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.Doist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.manik.Sundries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -318,7 +318,7 @@
 		F00000000000000000000007 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Doist/Doist.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Sundries/Sundries.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -329,7 +329,7 @@
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.Doist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.manik.Sundries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -340,7 +340,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F00000000000000000000001 /* Build configuration list for PBXProject "Doist" */ = {
+		F00000000000000000000001 /* Build configuration list for PBXProject "Sundries" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F00000000000000000000004 /* Debug */,
@@ -349,7 +349,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Doist" */ = {
+		F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Sundries" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F00000000000000000000006 /* Debug */,
