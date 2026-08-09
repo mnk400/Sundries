@@ -5,10 +5,14 @@ struct MenuBarContentView: View {
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var searchIsFocused: Bool
-    @State private var activeComposerPanel: ComposerPanel?
+    @State private var composerDrawer = DrawerState<ComposerPanel>()
 
     private var feedbackAnimation: Animation? {
         reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0)
+    }
+
+    private var drawerAnimation: Animation? {
+        DrawerMotion.animation(reduceMotion: reduceMotion)
     }
 
     var body: some View {
@@ -22,24 +26,24 @@ struct MenuBarContentView: View {
                     selectedDestination: taskStore.selectedDestination,
                     recentDestinations: taskStore.recentDestinations,
                     remainingDestinations: taskStore.remainingDestinations,
-                    activePanel: $activeComposerPanel,
+                    drawer: $composerDrawer,
                     selectDueDate: { dueDate in
                         taskStore.selectDueDate(dueDate)
-                        withAnimation(feedbackAnimation) {
-                            activeComposerPanel = nil
+                        withAnimation(drawerAnimation) {
+                            composerDrawer.dismiss()
                         }
                         searchIsFocused = true
                     },
                     selectDestination: { destination in
                         taskStore.selectDestination(destination)
-                        withAnimation(feedbackAnimation) {
-                            activeComposerPanel = nil
+                        withAnimation(drawerAnimation) {
+                            composerDrawer.dismiss()
                         }
                         searchIsFocused = true
                     },
                     addTask: {
-                        withAnimation(feedbackAnimation) {
-                            activeComposerPanel = nil
+                        withAnimation(drawerAnimation) {
+                            composerDrawer.dismiss()
                             taskStore.createTask()
                         }
                     }
@@ -68,7 +72,7 @@ struct MenuBarContentView: View {
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
         .onChange(of: taskStore.query) { _, query in
             if query.isEmpty {
-                activeComposerPanel = nil
+                composerDrawer.dismiss()
             }
         }
         .onAppear {
@@ -136,7 +140,7 @@ struct MenuBarContentView: View {
     }
 }
 
-private enum ComposerPanel: Equatable {
+private enum ComposerPanel: Hashable {
     case date
     case destination
 }
@@ -148,13 +152,13 @@ private struct QuickAddComposer: View {
     let selectedDestination: TaskDestination?
     let recentDestinations: [TaskDestination]
     let remainingDestinations: [TaskDestination]
-    @Binding var activePanel: ComposerPanel?
+    @Binding var drawer: DrawerState<ComposerPanel>
     let selectDueDate: (Date?) -> Void
     let selectDestination: (TaskDestination) -> Void
     let addTask: () -> Void
 
     private var drawerAnimation: Animation? {
-        reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.24, extraBounce: 0)
+        DrawerMotion.animation(reduceMotion: reduceMotion)
     }
 
     var body: some View {
@@ -162,7 +166,7 @@ private struct QuickAddComposer: View {
             HStack(spacing: 10) {
                 Button {
                     withAnimation(drawerAnimation) {
-                        activePanel = activePanel == .date ? nil : .date
+                        drawer.toggle(.date, replacementMotion: .backward)
                     }
                 } label: {
                     HStack(spacing: 5) {
@@ -173,7 +177,7 @@ private struct QuickAddComposer: View {
 
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .semibold))
-                            .rotationEffect(.degrees(activePanel == .date ? 180 : 0))
+                            .rotationEffect(.degrees(drawer.route == .date ? 180 : 0))
                     }
                     .contentShape(Rectangle())
                 }
@@ -187,7 +191,7 @@ private struct QuickAddComposer: View {
 
                 Button {
                     withAnimation(drawerAnimation) {
-                        activePanel = activePanel == .destination ? nil : .destination
+                        drawer.toggle(.destination, replacementMotion: .forward)
                     }
                 } label: {
                     HStack(spacing: 5) {
@@ -199,7 +203,7 @@ private struct QuickAddComposer: View {
 
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .semibold))
-                            .rotationEffect(.degrees(activePanel == .destination ? 180 : 0))
+                            .rotationEffect(.degrees(drawer.route == .destination ? 180 : 0))
                     }
                     .contentShape(Rectangle())
                 }
@@ -230,12 +234,12 @@ private struct QuickAddComposer: View {
             .font(.system(size: 12.5, weight: .medium))
             .foregroundStyle(.secondary)
 
-            if let activePanel {
-                Divider()
-                    .padding(.leading, 20)
-
+            DrawerContentHost(
+                state: drawer,
+                dividerLeadingPadding: 20
+            ) { panel in
                 Group {
-                    switch activePanel {
+                    switch panel {
                     case .date:
                         DateChooser(
                             selectedDate: draft.dueDate,
@@ -250,8 +254,6 @@ private struct QuickAddComposer: View {
                         )
                     }
                 }
-                .id(activePanel)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .accessibilityElement(children: .contain)
@@ -279,7 +281,7 @@ private struct QuickAddComposer: View {
 
 private struct DateChooser: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showsCalendar = false
+    @State private var navigation = DrawerState<DatePage>(route: .presets)
 
     let selectedDate: Date?
     let selectDate: (Date?) -> Void
@@ -287,17 +289,16 @@ private struct DateChooser: View {
     private let calendar = Calendar.current
 
     private var drawerAnimation: Animation? {
-        reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.24, extraBounce: 0)
+        DrawerMotion.animation(reduceMotion: reduceMotion)
     }
 
     var body: some View {
-        Group {
-            if showsCalendar {
-                calendarPicker
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            } else {
+        DrawerContentHost(state: navigation, dividerLeadingPadding: nil) { page in
+            switch page {
+            case .presets:
                 presetList
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+            case .calendar:
+                calendarPicker
             }
         }
         .background(.primary.opacity(0.035))
@@ -349,7 +350,7 @@ private struct DateChooser: View {
                 showsDisclosure: true,
                 action: {
                     withAnimation(drawerAnimation) {
-                        showsCalendar = true
+                        navigation.navigate(to: .calendar, motion: .forward)
                     }
                 }
             )
@@ -363,7 +364,7 @@ private struct DateChooser: View {
             HStack {
                 Button {
                     withAnimation(drawerAnimation) {
-                        showsCalendar = false
+                        navigation.navigate(to: .presets, motion: .backward)
                     }
                 } label: {
                     Label("Dates", systemImage: "chevron.left")
@@ -424,6 +425,11 @@ private struct DateChooser: View {
     private func shortDate(_ date: Date) -> String {
         date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
+}
+
+private enum DatePage: Hashable {
+    case presets
+    case calendar
 }
 
 private struct DateChoiceRow: View {

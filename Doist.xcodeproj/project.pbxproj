@@ -18,6 +18,7 @@
 		B0000000000000000000000A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* SettingsView.swift */; };
 		B0000000000000000000000B /* MarkdownFolderBookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000D /* MarkdownFolderBookmark.swift */; };
 		B0000000000000000000000C /* MarkdownTaskSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* MarkdownTaskSource.swift */; };
+		B0000000000000000000000D /* DrawerMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000F /* DrawerMotion.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		A0000000000000000000000C /* Doist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000000000000000000D /* MarkdownFolderBookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFolderBookmark.swift; sourceTree = "<group>"; };
 		A0000000000000000000000E /* MarkdownTaskSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTaskSource.swift; sourceTree = "<group>"; };
+		A0000000000000000000000F /* DrawerMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerMotion.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +101,7 @@
 		C00000000000000000000006 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				A0000000000000000000000F /* DrawerMotion.swift */,
 				A00000000000000000000007 /* MenuBarContentView.swift */,
 				A00000000000000000000008 /* TaskListView.swift */,
 				A00000000000000000000009 /* TaskRowView.swift */,
@@ -187,6 +190,7 @@
 				B0000000000000000000000A /* SettingsView.swift in Sources */,
 				B0000000000000000000000B /* MarkdownFolderBookmark.swift in Sources */,
 				B0000000000000000000000C /* MarkdownTaskSource.swift in Sources */,
+				B0000000000000000000000D /* DrawerMotion.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
