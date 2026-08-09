@@ -294,10 +294,10 @@ private struct DateChooser: View {
         Group {
             if showsCalendar {
                 calendarPicker
-                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             } else {
                 presetList
-                    .transition(.opacity.combined(with: .move(edge: .leading)))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .background(.primary.opacity(0.035))
