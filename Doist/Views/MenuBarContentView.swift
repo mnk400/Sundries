@@ -77,14 +77,8 @@ struct MenuBarContentView: View {
                 .help("Clear search")
             }
         }
-        .padding(.horizontal, 12)
-        .frame(height: 34)
-        .glassEffect(
-            .regular,
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-        )
-        .padding(.horizontal, 5)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, minHeight: 44, maxHeight: 44)
     }
 
     private var footer: some View {
