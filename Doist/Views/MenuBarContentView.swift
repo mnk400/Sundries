@@ -57,11 +57,19 @@ struct MenuBarContentView: View {
                 .environmentObject(taskStore)
 
             if let completedTask = taskStore.lastCompletedTask {
-                UndoBar(task: completedTask) {
-                    withAnimation(feedbackAnimation) {
-                        taskStore.undoLastCompletion()
+                UndoBar(
+                    task: completedTask,
+                    undo: {
+                        withAnimation(feedbackAnimation) {
+                            taskStore.undoLastCompletion()
+                        }
+                    },
+                    dismiss: {
+                        withAnimation(feedbackAnimation) {
+                            taskStore.dismissCompletionFeedback()
+                        }
                     }
-                }
+                )
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
@@ -80,6 +88,9 @@ struct MenuBarContentView: View {
             DispatchQueue.main.async {
                 searchIsFocused = true
             }
+        }
+        .onDisappear {
+            taskStore.dismissCompletionFeedback()
         }
     }
 
@@ -594,8 +605,27 @@ private struct DestinationRow: View {
 }
 
 private struct UndoBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @FocusState private var undoIsFocused: Bool
+    @State private var isHovering = false
+    @State private var remainingSeconds = Self.dismissDelay
+    @State private var timerStartedAt: Date?
+    @State private var autoDismissTask: Task<Void, Never>?
+
+    private static let dismissDelay: TimeInterval = 6
+
     let task: TaskItem
     let undo: () -> Void
+    let dismiss: () -> Void
+
+    private var isPaused: Bool {
+        isHovering || undoIsFocused || voiceOverEnabled
+    }
+
+    private var dismissalAnimation: Animation? {
+        reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -611,6 +641,7 @@ private struct UndoBar: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.blue)
                 .fontWeight(.medium)
+                .focused($undoIsFocused)
         }
         .font(.callout)
         .padding(.horizontal, 14)
@@ -621,6 +652,69 @@ private struct UndoBar: View {
         )
         .padding(.horizontal, 7)
         .padding(.vertical, 5)
+        .onHover { isHovering = $0 }
+        .onAppear { resetTimer() }
+        .onDisappear { cancelTimer() }
+        .onChange(of: task.id) { _, _ in resetTimer() }
+        .onChange(of: isHovering) { _, _ in updateTimerForPauseState() }
+        .onChange(of: undoIsFocused) { _, _ in updateTimerForPauseState() }
+        .onChange(of: voiceOverEnabled) { _, _ in updateTimerForPauseState() }
+    }
+
+    private func resetTimer() {
+        cancelTimer()
+        remainingSeconds = Self.dismissDelay
+
+        if !isPaused {
+            startTimer()
+        }
+    }
+
+    private func updateTimerForPauseState() {
+        if isPaused {
+            pauseTimer()
+        } else {
+            startTimer()
+        }
+    }
+
+    private func startTimer() {
+        guard autoDismissTask == nil, remainingSeconds > 0 else { return }
+
+        let delay = remainingSeconds
+        timerStartedAt = .now
+        autoDismissTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(Int64(delay * 1_000)))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            autoDismissTask = nil
+            timerStartedAt = nil
+            remainingSeconds = 0
+
+            withAnimation(dismissalAnimation) {
+                dismiss()
+            }
+        }
+    }
+
+    private func pauseTimer() {
+        guard let timerStartedAt else { return }
+
+        remainingSeconds = max(
+            0,
+            remainingSeconds - Date.now.timeIntervalSince(timerStartedAt)
+        )
+        cancelTimer()
+    }
+
+    private func cancelTimer() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
+        timerStartedAt = nil
     }
 }
 
