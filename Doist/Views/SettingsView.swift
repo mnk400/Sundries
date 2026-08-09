@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var taskStore: TaskStore
     @AppStorage(MenuBarCountMode.storageKey) private var menuBarCountMode = MenuBarCountMode.dueToday.rawValue
-    @State private var selectedPane: SettingsPane? = .general
+    @State private var selectedPane: SettingsPane? = .sources
 
     var body: some View {
         HStack(spacing: 0) {
@@ -16,7 +16,7 @@ struct SettingsView: View {
 
             Divider()
 
-            detailPane(selectedPane ?? .general)
+            detailPane(selectedPane ?? .sources)
         }
         .frame(width: 700, height: 440)
     }
@@ -28,30 +28,41 @@ struct SettingsView: View {
                 .font(.title2.weight(.semibold))
 
             switch pane {
-            case .general:
-                preferenceGroup {
-                    HStack {
-                        Text("Default source")
-                        Spacer()
-                        Picker("Default source", selection: $taskStore.defaultSourceID) {
-                            ForEach(taskStore.sources.filter { $0.availability == .prototype }) { source in
-                                Text(source.displayName).tag(source.id)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 150)
-                    }
-                    .padding(12)
-                }
-
             case .sources:
-                preferenceGroup {
-                    VStack(spacing: 0) {
-                        ForEach(taskStore.sources) { source in
-                            sourceRow(source)
+                VStack(alignment: .leading, spacing: 14) {
+                    preferenceGroup {
+                        VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Default source")
+                                Text("New tasks are added here unless another source is specified.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                            if source.id != taskStore.sources.last?.id {
-                                Divider().padding(.leading, 50)
+                            Picker("Default source", selection: $taskStore.defaultSourceID) {
+                                ForEach(taskStore.sources) { source in
+                                    Text(source.displayName)
+                                        .tag(source.id)
+                                        .disabled(source.availability != .prototype)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        }
+                        .padding(12)
+                    }
+
+                    Text("Available Sources")
+                        .font(.headline)
+
+                    preferenceGroup {
+                        VStack(spacing: 0) {
+                            ForEach(taskStore.sources) { source in
+                                sourceRow(source)
+
+                                if source.id != taskStore.sources.last?.id {
+                                    Divider().padding(.leading, 50)
+                                }
                             }
                         }
                     }
@@ -147,7 +158,6 @@ struct SettingsView: View {
 }
 
 private enum SettingsPane: String, CaseIterable, Identifiable {
-    case general
     case sources
     case menuBar
     case shortcuts
@@ -156,7 +166,6 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .general: "General"
         case .sources: "Sources"
         case .menuBar: "Menu Bar"
         case .shortcuts: "Shortcuts"
@@ -165,7 +174,6 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
 
     var symbolName: String {
         switch self {
-        case .general: "gearshape"
         case .sources: "tray.full"
         case .menuBar: "menubar.rectangle"
         case .shortcuts: "command"
