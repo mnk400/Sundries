@@ -5,7 +5,7 @@ struct MenuBarContentView: View {
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var searchIsFocused: Bool
-    @State private var destinationChooserIsExpanded = false
+    @State private var activeComposerPanel: ComposerPanel?
 
     private var feedbackAnimation: Animation? {
         reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0)
@@ -22,17 +22,24 @@ struct MenuBarContentView: View {
                     selectedDestination: taskStore.selectedDestination,
                     recentDestinations: taskStore.recentDestinations,
                     remainingDestinations: taskStore.remainingDestinations,
-                    isChooserExpanded: $destinationChooserIsExpanded,
+                    activePanel: $activeComposerPanel,
+                    selectDueDate: { dueDate in
+                        taskStore.selectDueDate(dueDate)
+                        withAnimation(feedbackAnimation) {
+                            activeComposerPanel = nil
+                        }
+                        searchIsFocused = true
+                    },
                     selectDestination: { destination in
                         taskStore.selectDestination(destination)
                         withAnimation(feedbackAnimation) {
-                            destinationChooserIsExpanded = false
+                            activeComposerPanel = nil
                         }
                         searchIsFocused = true
                     },
                     addTask: {
                         withAnimation(feedbackAnimation) {
-                            destinationChooserIsExpanded = false
+                            activeComposerPanel = nil
                             taskStore.createTask()
                         }
                     }
@@ -61,7 +68,7 @@ struct MenuBarContentView: View {
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
         .onChange(of: taskStore.query) { _, query in
             if query.isEmpty {
-                destinationChooserIsExpanded = false
+                activeComposerPanel = nil
             }
         }
         .onAppear {
@@ -129,28 +136,58 @@ struct MenuBarContentView: View {
     }
 }
 
+private enum ComposerPanel: Equatable {
+    case date
+    case destination
+}
+
 private struct QuickAddComposer: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let draft: TaskDraft
     let selectedDestination: TaskDestination?
     let recentDestinations: [TaskDestination]
     let remainingDestinations: [TaskDestination]
-    @Binding var isChooserExpanded: Bool
+    @Binding var activePanel: ComposerPanel?
+    let selectDueDate: (Date?) -> Void
     let selectDestination: (TaskDestination) -> Void
     let addTask: () -> Void
+
+    private var drawerAnimation: Animation? {
+        reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.24, extraBounce: 0)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Label(dueDateLabel, systemImage: "calendar")
-                    .lineLimit(1)
+                Button {
+                    withAnimation(drawerAnimation) {
+                        activePanel = activePanel == .date ? nil : .date
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "calendar")
+
+                        Text(dueDateLabel)
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .rotationEffect(.degrees(activePanel == .date ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(dueDateStyle)
+                .help("Choose a due date")
 
                 Rectangle()
                     .fill(.quaternary)
                     .frame(width: 1, height: 15)
 
                 Button {
-                    withAnimation(.snappy(duration: 0.24, extraBounce: 0)) {
-                        isChooserExpanded.toggle()
+                    withAnimation(drawerAnimation) {
+                        activePanel = activePanel == .destination ? nil : .destination
                     }
                 } label: {
                     HStack(spacing: 5) {
@@ -162,7 +199,7 @@ private struct QuickAddComposer: View {
 
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .semibold))
-                            .rotationEffect(.degrees(isChooserExpanded ? 180 : 0))
+                            .rotationEffect(.degrees(activePanel == .destination ? 180 : 0))
                     }
                     .contentShape(Rectangle())
                 }
@@ -193,16 +230,27 @@ private struct QuickAddComposer: View {
             .font(.system(size: 12.5, weight: .medium))
             .foregroundStyle(.secondary)
 
-            if isChooserExpanded {
+            if let activePanel {
                 Divider()
                     .padding(.leading, 20)
 
-                DestinationChooser(
-                    recentDestinations: recentDestinations,
-                    remainingDestinations: remainingDestinations,
-                    selectedDestinationID: selectedDestination?.id,
-                    selectDestination: selectDestination
-                )
+                Group {
+                    switch activePanel {
+                    case .date:
+                        DateChooser(
+                            selectedDate: draft.dueDate,
+                            selectDate: selectDueDate
+                        )
+                    case .destination:
+                        DestinationChooser(
+                            recentDestinations: recentDestinations,
+                            remainingDestinations: remainingDestinations,
+                            selectedDestinationID: selectedDestination?.id,
+                            selectDestination: selectDestination
+                        )
+                    }
+                }
+                .id(activePanel)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -219,6 +267,212 @@ private struct QuickAddComposer: View {
             return "Tomorrow"
         }
         return dueDate.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private var dueDateStyle: AnyShapeStyle {
+        guard let dueDate = draft.dueDate else { return AnyShapeStyle(.secondary) }
+        return dueDate < Calendar.current.startOfDay(for: .now)
+            ? AnyShapeStyle(Color.red)
+            : AnyShapeStyle(.secondary)
+    }
+}
+
+private struct DateChooser: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showsCalendar = false
+
+    let selectedDate: Date?
+    let selectDate: (Date?) -> Void
+
+    private let calendar = Calendar.current
+
+    private var drawerAnimation: Animation? {
+        reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.24, extraBounce: 0)
+    }
+
+    var body: some View {
+        Group {
+            if showsCalendar {
+                calendarPicker
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+            } else {
+                presetList
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
+            }
+        }
+        .background(.primary.opacity(0.035))
+    }
+
+    private var presetList: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Date".uppercased())
+                .font(.system(size: 9.5, weight: .semibold))
+                .tracking(0.4)
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 2)
+
+            DateChoiceRow(
+                title: "No date",
+                detail: nil,
+                symbolName: "calendar.badge.minus",
+                isSelected: selectedDate == nil,
+                action: { selectDate(nil) }
+            )
+            DateChoiceRow(
+                title: "Today",
+                detail: shortDate(today),
+                symbolName: "sun.max",
+                isSelected: isSelected(today),
+                action: { selectDate(today) }
+            )
+            DateChoiceRow(
+                title: "Tomorrow",
+                detail: shortDate(tomorrow),
+                symbolName: "sunrise",
+                isSelected: isSelected(tomorrow),
+                action: { selectDate(tomorrow) }
+            )
+            DateChoiceRow(
+                title: "Next week",
+                detail: shortDate(nextWeek),
+                symbolName: "calendar.badge.clock",
+                isSelected: isSelected(nextWeek),
+                action: { selectDate(nextWeek) }
+            )
+            DateChoiceRow(
+                title: "Choose date…",
+                detail: nil,
+                symbolName: "calendar",
+                isSelected: false,
+                showsDisclosure: true,
+                action: {
+                    withAnimation(drawerAnimation) {
+                        showsCalendar = true
+                    }
+                }
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+
+    private var calendarPicker: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Button {
+                    withAnimation(drawerAnimation) {
+                        showsCalendar = false
+                    }
+                } label: {
+                    Label("Dates", systemImage: "chevron.left")
+                        .font(.system(size: 11.5, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("Choose Date")
+                    .font(.system(size: 11.5, weight: .semibold))
+
+                Spacer()
+
+                Color.clear
+                    .frame(width: 44, height: 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+
+            DatePicker(
+                "Due date",
+                selection: Binding(
+                    get: { selectedDate ?? today },
+                    set: { selectDate($0) }
+                ),
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.graphical)
+            .controlSize(.small)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private var today: Date {
+        calendar.startOfDay(for: .now)
+    }
+
+    private var tomorrow: Date {
+        calendar.date(byAdding: .day, value: 1, to: today)!
+    }
+
+    private var nextWeek: Date {
+        let weekday = calendar.component(.weekday, from: today)
+        let daysUntilMonday = (9 - weekday) % 7
+        let offset = daysUntilMonday == 0 ? 7 : daysUntilMonday
+        return calendar.date(byAdding: .day, value: offset, to: today)!
+    }
+
+    private func isSelected(_ date: Date) -> Bool {
+        guard let selectedDate else { return false }
+        return calendar.isDate(selectedDate, inSameDayAs: date)
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+    }
+}
+
+private struct DateChoiceRow: View {
+    let title: String
+    let detail: String?
+    let symbolName: String
+    let isSelected: Bool
+    var showsDisclosure = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.blue)
+                    .opacity(isSelected ? 1 : 0)
+                    .frame(width: 12)
+
+                Image(systemName: symbolName)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+
+                Text(title)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 8)
+
+                if let detail {
+                    Text(detail)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if showsDisclosure {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .font(.system(size: 12.5))
+            .padding(.horizontal, 8)
+            .frame(height: 28)
+            .contentShape(Rectangle())
+            .background(
+                isSelected ? Color.primary.opacity(0.06) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

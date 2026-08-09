@@ -3,7 +3,13 @@ import Foundation
 @MainActor
 final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem]
-    @Published var query = ""
+    @Published var query = "" {
+        didSet {
+            if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                dueDateOverride = .automatic
+            }
+        }
+    }
     @Published var defaultSourceID = TaskSourceDescriptor.markdown.id {
         didSet {
             guard defaultSourceID != oldValue else { return }
@@ -18,6 +24,7 @@ final class TaskStore: ObservableObject {
     @Published private(set) var selectedDestinationID: String?
     @Published private(set) var isLoading = false
     @Published private(set) var sourceError: String?
+    @Published private var dueDateOverride = TaskDueDateOverride.automatic
 
     let sources: [TaskSourceDescriptor] = [.markdown, .reminders]
     private var sourceAdapters: [String: any TaskSourceAdapter] = [:]
@@ -63,7 +70,23 @@ final class TaskStore: ObservableObject {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return nil }
 
-        return TaskDraftParser.parse(trimmedQuery, defaultSourceID: defaultSourceID)
+        let parsedDraft = TaskDraftParser.parse(trimmedQuery, defaultSourceID: defaultSourceID)
+        let dueDate: Date?
+
+        switch dueDateOverride {
+        case .automatic:
+            dueDate = parsedDraft.dueDate
+        case .noDate:
+            dueDate = nil
+        case let .date(date):
+            dueDate = date
+        }
+
+        return TaskDraft(
+            title: parsedDraft.title,
+            dueDate: dueDate,
+            sourceID: parsedDraft.sourceID
+        )
     }
 
     var selectedDestination: TaskDestination? {
@@ -147,6 +170,14 @@ final class TaskStore: ObservableObject {
         )
     }
 
+    func selectDueDate(_ dueDate: Date?) {
+        if let dueDate {
+            dueDateOverride = .date(Calendar.current.startOfDay(for: dueDate))
+        } else {
+            dueDateOverride = .noDate
+        }
+    }
+
     func createTask() {
         guard let draft = parsedDraft,
               let adapter = sourceAdapters[draft.sourceID],
@@ -154,6 +185,7 @@ final class TaskStore: ObservableObject {
               destination.sourceID == draft.sourceID else { return }
 
         let originalQuery = query
+        let originalDueDateOverride = dueDateOverride
         query = ""
 
         Task {
@@ -164,6 +196,7 @@ final class TaskStore: ObservableObject {
                 sourceError = nil
             } catch {
                 query = originalQuery
+                dueDateOverride = originalDueDateOverride
                 sourceError = error.localizedDescription
             }
         }
@@ -331,6 +364,12 @@ final class TaskStore: ObservableObject {
             )
         ]
     }
+}
+
+private enum TaskDueDateOverride: Equatable {
+    case automatic
+    case noDate
+    case date(Date)
 }
 
 private enum DestinationPreferences {
