@@ -79,6 +79,9 @@ private struct MenuBarPillArtwork: View {
             .foregroundStyle(isOverdue ? Color.white : Color.primary)
             .padding(.horizontal, 8)
             .frame(minWidth: 28, minHeight: 22, maxHeight: 22)
-            .background(isOverdue ? Color.red : Color.clear)
+            .background {
+                Rectangle()
+                    .fill(isOverdue ? Color.red : Color.clear)
+            }
     }
 }
