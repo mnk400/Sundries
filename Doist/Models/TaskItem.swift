@@ -1,22 +1,24 @@
 import Foundation
 
 struct TaskItem: Identifiable, Hashable, Sendable {
-    let id: UUID
+    let id: String
     var title: String
     var note: String?
     var dueDate: Date?
     var isCompleted: Bool
     var sourceID: String
     var context: String?
+    var sourceLocation: TaskSourceLocation?
 
     init(
-        id: UUID = UUID(),
+        id: String = UUID().uuidString,
         title: String,
         note: String? = nil,
         dueDate: Date? = nil,
         isCompleted: Bool = false,
         sourceID: String,
-        context: String? = nil
+        context: String? = nil,
+        sourceLocation: TaskSourceLocation? = nil
     ) {
         self.id = id
         self.title = title
@@ -25,7 +27,18 @@ struct TaskItem: Identifiable, Hashable, Sendable {
         self.isCompleted = isCompleted
         self.sourceID = sourceID
         self.context = context
+        self.sourceLocation = sourceLocation
     }
+}
+
+enum TaskSourceLocation: Hashable, Sendable {
+    case markdown(MarkdownTaskLocation)
+}
+
+struct MarkdownTaskLocation: Hashable, Sendable {
+    let relativePath: String
+    let lineNumber: Int
+    let originalLine: String
 }
 
 enum TaskSection: Int, CaseIterable, Identifiable, Sendable {

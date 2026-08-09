@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -66,6 +67,12 @@ struct SettingsView: View {
                             }
                         }
                     }
+
+                    if let sourceError = taskStore.sourceError {
+                        Label(sourceError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
 
             case .menuBar:
@@ -127,23 +134,52 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(source.displayName)
                     .fontWeight(.medium)
-                Text(source.id == TaskSourceDescriptor.markdown.id
-                     ? "Plain checkbox lists in files and folders"
-                     : "A future connection to the system Reminders database")
+                Text(sourceDescription(source))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
 
             Spacer()
 
-            Text(source.availability.rawValue)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(source.availability == .prototype ? Color.blue : Color.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.quaternary, in: Capsule())
+            if source.id == TaskSourceDescriptor.markdown.id {
+                Button(taskStore.markdownFolderURL == nil ? "Choose Folder…" : "Change…") {
+                    chooseMarkdownFolder()
+                }
+            } else {
+                Text(source.availability.rawValue)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.quaternary, in: Capsule())
+            }
         }
         .padding(12)
+    }
+
+    private func sourceDescription(_ source: TaskSourceDescriptor) -> String {
+        guard source.id == TaskSourceDescriptor.markdown.id else {
+            return "A future connection to the system Reminders database"
+        }
+
+        return taskStore.markdownFolderURL?.path(percentEncoded: false)
+            ?? "Plain checkbox lists in files and folders"
+    }
+
+    private func chooseMarkdownFolder() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a Markdown Folder"
+        panel.prompt = "Choose"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = taskStore.markdownFolderURL
+
+        guard panel.runModal() == .OK, let folderURL = panel.url else { return }
+        taskStore.configureMarkdownFolder(folderURL)
     }
 
     private func preferenceGroup<Content: View>(

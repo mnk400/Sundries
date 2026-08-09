@@ -6,11 +6,30 @@ final class TaskStore: ObservableObject {
     @Published var query = ""
     @Published var defaultSourceID = TaskSourceDescriptor.markdown.id
     @Published private(set) var lastCompletedTask: TaskItem?
+    @Published private(set) var markdownFolderURL: URL?
+    @Published private(set) var isLoading = false
+    @Published private(set) var sourceError: String?
 
     let sources: [TaskSourceDescriptor] = [.markdown, .reminders]
+    private var markdownSource: MarkdownTaskSource?
 
     init(tasks: [TaskItem]? = nil) {
-        self.tasks = tasks ?? Self.sampleTasks()
+        if let tasks {
+            self.tasks = tasks
+            return
+        }
+
+        self.tasks = []
+
+        do {
+            if let folderURL = try MarkdownFolderBookmark.restore() {
+                markdownFolderURL = folderURL
+                markdownSource = MarkdownTaskSource(rootURL: folderURL)
+                refreshTasks()
+            }
+        } catch {
+            sourceError = error.localizedDescription
+        }
     }
 
     var overdueCount: Int {
@@ -26,6 +45,8 @@ final class TaskStore: ObservableObject {
     }
 
     var parsedDraft: TaskDraft? {
+        guard markdownSource != nil else { return nil }
+
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return nil }
 
@@ -63,39 +84,101 @@ final class TaskStore: ObservableObject {
         sources.first(where: { $0.id == id }) ?? .markdown
     }
 
-    func createTask() {
-        guard let draft = parsedDraft else { return }
+    func configureMarkdownFolder(_ folderURL: URL) {
+        do {
+            try MarkdownFolderBookmark.save(folderURL)
+            markdownFolderURL = folderURL.standardizedFileURL
+            markdownSource = MarkdownTaskSource(rootURL: folderURL)
+            tasks = []
+            sourceError = nil
+            refreshTasks()
+        } catch {
+            sourceError = error.localizedDescription
+        }
+    }
 
-        tasks.append(
-            TaskItem(
-                title: draft.title,
-                dueDate: draft.dueDate,
-                sourceID: draft.sourceID,
-                context: "Inbox.md"
-            )
-        )
+    func refreshTasks() {
+        guard markdownSource != nil, !isLoading else { return }
+        Task { await reloadTasks() }
+    }
+
+    func createTask() {
+        guard let draft = parsedDraft, let markdownSource else { return }
+
         query = ""
+
+        Task {
+            do {
+                let task = try await markdownSource.createTask(draft)
+                tasks.append(task)
+                sourceError = nil
+            } catch {
+                query = draft.title
+                sourceError = error.localizedDescription
+            }
+        }
     }
 
     func complete(_ task: TaskItem) {
-        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+        guard let index = tasks.firstIndex(where: { $0.id == task.id }),
+              let markdownSource else { return }
 
         lastCompletedTask = tasks[index]
         tasks[index].isCompleted = true
+
+        Task {
+            do {
+                try await markdownSource.setCompleted(task, isCompleted: true)
+                sourceError = nil
+            } catch {
+                if let currentIndex = tasks.firstIndex(where: { $0.id == task.id }) {
+                    tasks[currentIndex].isCompleted = false
+                }
+                lastCompletedTask = nil
+                sourceError = error.localizedDescription
+            }
+        }
     }
 
     func undoLastCompletion() {
         guard let completedTask = lastCompletedTask,
-              let index = tasks.firstIndex(where: { $0.id == completedTask.id }) else {
+              let index = tasks.firstIndex(where: { $0.id == completedTask.id }),
+              let markdownSource else {
             return
         }
 
         tasks[index].isCompleted = false
         lastCompletedTask = nil
+
+        Task {
+            do {
+                try await markdownSource.setCompleted(completedTask, isCompleted: false)
+                sourceError = nil
+            } catch {
+                if let currentIndex = tasks.firstIndex(where: { $0.id == completedTask.id }) {
+                    tasks[currentIndex].isCompleted = true
+                }
+                sourceError = error.localizedDescription
+            }
+        }
     }
 
     func dismissCompletionFeedback() {
         lastCompletedTask = nil
+    }
+
+    private func reloadTasks() async {
+        guard let markdownSource, !isLoading else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            tasks = try await markdownSource.fetchTasks()
+            sourceError = nil
+        } catch {
+            sourceError = error.localizedDescription
+        }
     }
 
     private static func sampleTasks(calendar: Calendar = .current) -> [TaskItem] {

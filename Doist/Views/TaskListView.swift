@@ -6,7 +6,19 @@ struct TaskListView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                if taskStore.visibleSections.isEmpty {
+                if taskStore.markdownFolderURL == nil {
+                    ContentUnavailableView(
+                        "Choose a Markdown folder",
+                        systemImage: "folder.badge.plus",
+                        description: Text("Open Settings to connect the folder where your checkbox lists live.")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 74)
+                } else if taskStore.isLoading && taskStore.tasks.isEmpty {
+                    ProgressView("Reading Markdown files…")
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 90)
+                } else if taskStore.visibleSections.isEmpty {
                     ContentUnavailableView(
                         "No matching todos",
                         systemImage: "checkmark.circle",

@@ -44,6 +44,7 @@ struct MenuBarContentView: View {
         .animation(feedbackAnimation, value: taskStore.parsedDraft != nil)
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
         .onAppear {
+            taskStore.refreshTasks()
             DispatchQueue.main.async {
                 searchIsFocused = true
             }
