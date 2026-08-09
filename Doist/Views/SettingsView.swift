@@ -6,14 +6,16 @@ struct SettingsView: View {
     @State private var selectedPane: SettingsPane? = .general
 
     var body: some View {
-        NavigationSplitView {
+        HStack(spacing: 0) {
             List(SettingsPane.allCases, selection: $selectedPane) { pane in
                 Label(pane.title, systemImage: pane.symbolName)
                     .tag(pane)
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 150, ideal: 170, max: 190)
-        } detail: {
+            .frame(width: 180)
+
+            Divider()
+
             detailPane(selectedPane ?? .general)
         }
         .frame(width: 700, height: 440)
