@@ -38,7 +38,7 @@ struct TaskRowView: View {
 
                 HStack(spacing: 5) {
                     if let dueDate = task.dueDate {
-                        Text(dueLabel(for: dueDate))
+                        Text(dueLabel(for: dueDate, includesTime: task.dueDateIncludesTime))
                             .foregroundStyle(section == .overdue ? Color.red : Color.secondary)
                     }
 
@@ -69,8 +69,21 @@ struct TaskRowView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func dueLabel(for date: Date) -> String {
-        switch section {
+    private func dueLabel(for date: Date, includesTime: Bool) -> String {
+        if !includesTime {
+            switch section {
+            case .today:
+                return "Today"
+            case .tomorrow:
+                return "Tomorrow"
+            case .overdue, .upcoming:
+                return date.formatted(date: .abbreviated, time: .omitted)
+            case .unscheduled:
+                return ""
+            }
+        }
+
+        return switch section {
         case .overdue, .upcoming:
             date.formatted(date: .abbreviated, time: .shortened)
         case .today:

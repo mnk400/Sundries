@@ -132,6 +132,7 @@ actor MarkdownTaskSource: TaskSourceAdapter {
             id: "markdown:\(relativePath):\(lineNumber)",
             title: parsedLine.title,
             dueDate: parsedLine.dueDate,
+            dueDateIncludesTime: false,
             isCompleted: parsedLine.isCompleted,
             sourceID: descriptor.id,
             context: relativePath,

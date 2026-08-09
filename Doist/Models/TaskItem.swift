@@ -5,6 +5,7 @@ struct TaskItem: Identifiable, Hashable, Sendable {
     var title: String
     var note: String?
     var dueDate: Date?
+    var dueDateIncludesTime: Bool
     var isCompleted: Bool
     var sourceID: String
     var context: String?
@@ -15,6 +16,7 @@ struct TaskItem: Identifiable, Hashable, Sendable {
         title: String,
         note: String? = nil,
         dueDate: Date? = nil,
+        dueDateIncludesTime: Bool = true,
         isCompleted: Bool = false,
         sourceID: String,
         context: String? = nil,
@@ -24,6 +26,7 @@ struct TaskItem: Identifiable, Hashable, Sendable {
         self.title = title
         self.note = note
         self.dueDate = dueDate
+        self.dueDateIncludesTime = dueDateIncludesTime
         self.isCompleted = isCompleted
         self.sourceID = sourceID
         self.context = context
