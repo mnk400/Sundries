@@ -40,3 +40,22 @@ struct TaskSourceDescriptor: Identifiable, Hashable, Sendable {
         availability: .planned
     )
 }
+
+/// A source-owned place where a new task can be created.
+///
+/// Markdown exposes files, Apple Reminders can expose lists, and future adapters
+/// can expose projects without the composer needing to understand any of them.
+struct TaskDestination: Identifiable, Hashable, Sendable {
+    let sourceID: String
+    let adapterID: String
+    let displayName: String
+    let detail: String?
+    let symbolName: String
+
+    var id: String { "\(sourceID):\(adapterID)" }
+
+    var compactDisplayName: String {
+        guard let detail, !detail.isEmpty else { return displayName }
+        return "\(detail)/\(displayName)"
+    }
+}

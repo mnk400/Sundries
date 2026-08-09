@@ -6,6 +6,7 @@ protocol TaskSourceAdapter: Sendable {
     var descriptor: TaskSourceDescriptor { get }
 
     func fetchTasks() async throws -> [TaskItem]
-    func createTask(_ draft: TaskDraft) async throws -> TaskItem
+    func fetchDestinations() async throws -> [TaskDestination]
+    func createTask(_ draft: TaskDraft, in destination: TaskDestination) async throws -> TaskItem
     func setCompleted(_ task: TaskItem, isCompleted: Bool) async throws
 }

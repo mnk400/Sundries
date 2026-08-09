@@ -4,14 +4,26 @@ import Foundation
 final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem]
     @Published var query = ""
-    @Published var defaultSourceID = TaskSourceDescriptor.markdown.id
+    @Published var defaultSourceID = TaskSourceDescriptor.markdown.id {
+        didSet {
+            guard defaultSourceID != oldValue else { return }
+            destinations = []
+            selectedDestinationID = nil
+            refreshDestinations()
+        }
+    }
     @Published private(set) var lastCompletedTask: TaskItem?
     @Published private(set) var markdownFolderURL: URL?
+    @Published private(set) var destinations: [TaskDestination] = []
+    @Published private(set) var selectedDestinationID: String?
     @Published private(set) var isLoading = false
     @Published private(set) var sourceError: String?
 
     let sources: [TaskSourceDescriptor] = [.markdown, .reminders]
-    private var markdownSource: MarkdownTaskSource?
+    private var sourceAdapters: [String: any TaskSourceAdapter] = [:]
+    private var recentDestinationIDs = UserDefaults.standard.stringArray(
+        forKey: DestinationPreferences.recentIDsKey
+    ) ?? []
 
     init(tasks: [TaskItem]? = nil) {
         if let tasks {
@@ -24,7 +36,8 @@ final class TaskStore: ObservableObject {
         do {
             if let folderURL = try MarkdownFolderBookmark.restore() {
                 markdownFolderURL = folderURL
-                markdownSource = MarkdownTaskSource(rootURL: folderURL)
+                let source = MarkdownTaskSource(rootURL: folderURL)
+                sourceAdapters[source.descriptor.id] = source
                 refreshTasks()
             }
         } catch {
@@ -45,12 +58,27 @@ final class TaskStore: ObservableObject {
     }
 
     var parsedDraft: TaskDraft? {
-        guard markdownSource != nil else { return nil }
+        guard sourceAdapters[defaultSourceID] != nil else { return nil }
 
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return nil }
 
         return TaskDraftParser.parse(trimmedQuery, defaultSourceID: defaultSourceID)
+    }
+
+    var selectedDestination: TaskDestination? {
+        guard let selectedDestinationID else { return nil }
+        return destinations.first(where: { $0.id == selectedDestinationID })
+    }
+
+    var recentDestinations: [TaskDestination] {
+        let destinationsByID = Dictionary(uniqueKeysWithValues: destinations.map { ($0.id, $0) })
+        return recentDestinationIDs.compactMap { destinationsByID[$0] }
+    }
+
+    var remainingDestinations: [TaskDestination] {
+        let recentIDs = Set(recentDestinationIDs)
+        return destinations.filter { !recentIDs.contains($0.id) }
     }
 
     var visibleSections: [TaskSectionGroup] {
@@ -88,8 +116,11 @@ final class TaskStore: ObservableObject {
         do {
             try MarkdownFolderBookmark.save(folderURL)
             markdownFolderURL = folderURL.standardizedFileURL
-            markdownSource = MarkdownTaskSource(rootURL: folderURL)
+            let source = MarkdownTaskSource(rootURL: folderURL)
+            sourceAdapters[source.descriptor.id] = source
             tasks = []
+            destinations = []
+            selectedDestinationID = nil
             sourceError = nil
             refreshTasks()
         } catch {
@@ -98,22 +129,41 @@ final class TaskStore: ObservableObject {
     }
 
     func refreshTasks() {
-        guard markdownSource != nil, !isLoading else { return }
+        guard !sourceAdapters.isEmpty, !isLoading else { return }
         Task { await reloadTasks() }
     }
 
-    func createTask() {
-        guard let draft = parsedDraft, let markdownSource else { return }
+    func refreshDestinations() {
+        guard sourceAdapters[defaultSourceID] != nil else { return }
+        Task { await reloadDestinations() }
+    }
 
+    func selectDestination(_ destination: TaskDestination) {
+        guard destinations.contains(destination) else { return }
+        selectedDestinationID = destination.id
+        UserDefaults.standard.set(
+            destination.id,
+            forKey: DestinationPreferences.lastIDKey(for: destination.sourceID)
+        )
+    }
+
+    func createTask() {
+        guard let draft = parsedDraft,
+              let adapter = sourceAdapters[draft.sourceID],
+              let destination = selectedDestination,
+              destination.sourceID == draft.sourceID else { return }
+
+        let originalQuery = query
         query = ""
 
         Task {
             do {
-                let task = try await markdownSource.createTask(draft)
+                let task = try await adapter.createTask(draft, in: destination)
                 tasks.append(task)
+                recordUse(of: destination)
                 sourceError = nil
             } catch {
-                query = draft.title
+                query = originalQuery
                 sourceError = error.localizedDescription
             }
         }
@@ -121,14 +171,14 @@ final class TaskStore: ObservableObject {
 
     func complete(_ task: TaskItem) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }),
-              let markdownSource else { return }
+              let adapter = sourceAdapters[task.sourceID] else { return }
 
         lastCompletedTask = tasks[index]
         tasks[index].isCompleted = true
 
         Task {
             do {
-                try await markdownSource.setCompleted(task, isCompleted: true)
+                try await adapter.setCompleted(task, isCompleted: true)
                 sourceError = nil
             } catch {
                 if let currentIndex = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -143,7 +193,7 @@ final class TaskStore: ObservableObject {
     func undoLastCompletion() {
         guard let completedTask = lastCompletedTask,
               let index = tasks.firstIndex(where: { $0.id == completedTask.id }),
-              let markdownSource else {
+              let adapter = sourceAdapters[completedTask.sourceID] else {
             return
         }
 
@@ -152,7 +202,7 @@ final class TaskStore: ObservableObject {
 
         Task {
             do {
-                try await markdownSource.setCompleted(completedTask, isCompleted: false)
+                try await adapter.setCompleted(completedTask, isCompleted: false)
                 sourceError = nil
             } catch {
                 if let currentIndex = tasks.firstIndex(where: { $0.id == completedTask.id }) {
@@ -168,17 +218,71 @@ final class TaskStore: ObservableObject {
     }
 
     private func reloadTasks() async {
-        guard let markdownSource, !isLoading else { return }
+        guard !sourceAdapters.isEmpty, !isLoading else { return }
 
         isLoading = true
         defer { isLoading = false }
 
         do {
-            tasks = try await markdownSource.fetchTasks()
+            var fetchedTasks: [TaskItem] = []
+            for adapter in sourceAdapters.values {
+                fetchedTasks += try await adapter.fetchTasks()
+            }
+            tasks = fetchedTasks
+            await reloadDestinations()
             sourceError = nil
         } catch {
             sourceError = error.localizedDescription
         }
+    }
+
+    private func reloadDestinations() async {
+        let sourceID = defaultSourceID
+        guard let adapter = sourceAdapters[sourceID] else {
+            destinations = []
+            selectedDestinationID = nil
+            return
+        }
+
+        do {
+            let fetchedDestinations = try await adapter.fetchDestinations()
+            guard sourceID == defaultSourceID else { return }
+
+            destinations = fetchedDestinations
+            selectPreferredDestination(in: fetchedDestinations, sourceID: sourceID)
+            sourceError = nil
+        } catch {
+            guard sourceID == defaultSourceID else { return }
+            destinations = []
+            selectedDestinationID = nil
+            sourceError = error.localizedDescription
+        }
+    }
+
+    private func selectPreferredDestination(
+        in availableDestinations: [TaskDestination],
+        sourceID: String
+    ) {
+        if let selectedDestinationID,
+           availableDestinations.contains(where: { $0.id == selectedDestinationID }) {
+            return
+        }
+
+        let rememberedID = UserDefaults.standard.string(
+            forKey: DestinationPreferences.lastIDKey(for: sourceID)
+        )
+        let preferredDestination = availableDestinations.first { $0.id == rememberedID }
+            ?? availableDestinations.first { $0.adapterID.localizedCaseInsensitiveCompare("Inbox.md") == .orderedSame }
+            ?? availableDestinations.first
+
+        selectedDestinationID = preferredDestination?.id
+    }
+
+    private func recordUse(of destination: TaskDestination) {
+        recentDestinationIDs.removeAll(where: { $0 == destination.id })
+        recentDestinationIDs.insert(destination.id, at: 0)
+        recentDestinationIDs = Array(recentDestinationIDs.prefix(4))
+        UserDefaults.standard.set(recentDestinationIDs, forKey: DestinationPreferences.recentIDsKey)
     }
 
     private static func sampleTasks(calendar: Calendar = .current) -> [TaskItem] {
@@ -226,5 +330,13 @@ final class TaskStore: ObservableObject {
                 context: "Doist.md"
             )
         ]
+    }
+}
+
+private enum DestinationPreferences {
+    static let recentIDsKey = "recentTaskDestinationIDs"
+
+    static func lastIDKey(for sourceID: String) -> String {
+        "lastTaskDestinationID.\(sourceID)"
     }
 }

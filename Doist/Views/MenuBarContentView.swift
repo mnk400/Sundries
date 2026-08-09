@@ -5,6 +5,7 @@ struct MenuBarContentView: View {
     @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var searchIsFocused: Bool
+    @State private var destinationChooserIsExpanded = false
 
     private var feedbackAnimation: Animation? {
         reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0)
@@ -16,11 +17,26 @@ struct MenuBarContentView: View {
 
             if let draft = taskStore.parsedDraft {
                 Divider()
-                QuickAddRow(draft: draft) {
-                    withAnimation(feedbackAnimation) {
-                        taskStore.createTask()
+                QuickAddComposer(
+                    draft: draft,
+                    selectedDestination: taskStore.selectedDestination,
+                    recentDestinations: taskStore.recentDestinations,
+                    remainingDestinations: taskStore.remainingDestinations,
+                    isChooserExpanded: $destinationChooserIsExpanded,
+                    selectDestination: { destination in
+                        taskStore.selectDestination(destination)
+                        withAnimation(feedbackAnimation) {
+                            destinationChooserIsExpanded = false
+                        }
+                        searchIsFocused = true
+                    },
+                    addTask: {
+                        withAnimation(feedbackAnimation) {
+                            destinationChooserIsExpanded = false
+                            taskStore.createTask()
+                        }
                     }
-                }
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -43,6 +59,11 @@ struct MenuBarContentView: View {
         .frame(width: 536, height: 548)
         .animation(feedbackAnimation, value: taskStore.parsedDraft != nil)
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
+        .onChange(of: taskStore.query) { _, query in
+            if query.isEmpty {
+                destinationChooserIsExpanded = false
+            }
+        }
         .onAppear {
             taskStore.refreshTasks()
             DispatchQueue.main.async {
@@ -108,45 +129,207 @@ struct MenuBarContentView: View {
     }
 }
 
-private struct QuickAddRow: View {
+private struct QuickAddComposer: View {
     let draft: TaskDraft
+    let selectedDestination: TaskDestination?
+    let recentDestinations: [TaskDestination]
+    let remainingDestinations: [TaskDestination]
+    @Binding var isChooserExpanded: Bool
+    let selectDestination: (TaskDestination) -> Void
+    let addTask: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Label(dueDateLabel, systemImage: "calendar")
+                    .lineLimit(1)
+
+                Rectangle()
+                    .fill(.quaternary)
+                    .frame(width: 1, height: 15)
+
+                Button {
+                    withAnimation(.snappy(duration: 0.24, extraBounce: 0)) {
+                        isChooserExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: selectedDestination?.symbolName ?? "tray")
+
+                        Text(selectedDestination?.compactDisplayName ?? "Choose destination")
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .rotationEffect(.degrees(isChooserExpanded ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(selectedDestination == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                .help("Choose where to add this task")
+
+                Spacer(minLength: 6)
+
+                Button(action: addTask) {
+                    HStack(spacing: 5) {
+                        Text("Add")
+                        Image(systemName: "return")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(
+                    selectedDestination == nil
+                        ? AnyShapeStyle(.tertiary)
+                        : AnyShapeStyle(Color.blue)
+                )
+                .fontWeight(.medium)
+                .disabled(selectedDestination == nil)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 40)
+            .font(.system(size: 12.5, weight: .medium))
+            .foregroundStyle(.secondary)
+
+            if isChooserExpanded {
+                Divider()
+                    .padding(.leading, 20)
+
+                DestinationChooser(
+                    recentDestinations: recentDestinations,
+                    remainingDestinations: remainingDestinations,
+                    selectedDestinationID: selectedDestination?.id,
+                    selectDestination: selectDestination
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var dueDateLabel: String {
+        guard let dueDate = draft.dueDate else { return "No date" }
+
+        if Calendar.current.isDateInToday(dueDate) {
+            return "Today"
+        }
+        if Calendar.current.isDateInTomorrow(dueDate) {
+            return "Tomorrow"
+        }
+        return dueDate.formatted(date: .abbreviated, time: .omitted)
+    }
+}
+
+private struct DestinationChooser: View {
+    let recentDestinations: [TaskDestination]
+    let remainingDestinations: [TaskDestination]
+    let selectedDestinationID: String?
+    let selectDestination: (TaskDestination) -> Void
+
+    private var hasDestinations: Bool {
+        !recentDestinations.isEmpty || !remainingDestinations.isEmpty
+    }
+
+    var body: some View {
+        Group {
+            if hasDestinations {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        if !recentDestinations.isEmpty {
+                            destinationSection("Recent", destinations: recentDestinations)
+                        }
+
+                        if !remainingDestinations.isEmpty {
+                            destinationSection(
+                                recentDestinations.isEmpty ? "Files" : "All Files",
+                                destinations: remainingDestinations
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 164)
+            } else {
+                Label("No destinations available", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .frame(height: 44)
+            }
+        }
+        .background(.primary.opacity(0.035))
+    }
+
+    private func destinationSection(
+        _ title: String,
+        destinations: [TaskDestination]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title.uppercased())
+                .font(.system(size: 9.5, weight: .semibold))
+                .tracking(0.4)
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 8)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+
+            ForEach(destinations, id: \.id) { destination in
+                DestinationRow(
+                    destination: destination,
+                    isSelected: destination.id == selectedDestinationID,
+                    action: { selectDestination(destination) }
+                )
+            }
+        }
+    }
+}
+
+private struct DestinationRow: View {
+    let destination: TaskDestination
+    let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 11) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18))
+            HStack(spacing: 9) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.blue)
+                    .opacity(isSelected ? 1 : 0)
+                    .frame(width: 12)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(draft.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .lineLimit(1)
-
-                    HStack(spacing: 6) {
-                        Label("Markdown", systemImage: "doc.plaintext")
-
-                        if let dueDate = draft.dueDate {
-                            Label(dueDate.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
-                        }
-                    }
-                    .font(.caption)
+                Image(systemName: destination.symbolName)
                     .foregroundStyle(.secondary)
+                    .frame(width: 16)
+
+                Text(destination.displayName)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                if let detail = destination.detail {
+                    Text(detail)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
 
-                Spacer(minLength: 8)
-
-                Image(systemName: "return")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 0)
             }
+            .font(.system(size: 12.5))
+            .padding(.horizontal, 8)
+            .frame(height: 28)
             .contentShape(Rectangle())
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .background(
+                isSelected ? Color.primary.opacity(0.06) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Add \(draft.title)")
     }
 }
 

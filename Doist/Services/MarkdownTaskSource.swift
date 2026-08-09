@@ -11,38 +11,35 @@ actor MarkdownTaskSource: TaskSourceAdapter {
     }
 
     func fetchTasks() async throws -> [TaskItem] {
-        try withFolderAccess {
-            let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey, .isHiddenKey]
-            guard let enumerator = fileManager.enumerator(
-                at: rootURL,
-                includingPropertiesForKeys: Array(resourceKeys),
-                options: [.skipsHiddenFiles, .skipsPackageDescendants]
-            ) else {
-                throw MarkdownSourceError.cannotReadFolder
-            }
-
-            let markdownFiles = enumerator
-                .compactMap { $0 as? URL }
-                .filter { url in
-                    guard url.pathExtension.localizedCaseInsensitiveCompare("md") == .orderedSame,
-                          let values = try? url.resourceValues(forKeys: resourceKeys) else {
-                        return false
-                    }
-                    return values.isRegularFile == true && values.isHidden != true
-                }
-                .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
-
-            return try markdownFiles.flatMap(tasks(in:))
+        return try withFolderAccess {
+            try markdownFiles().flatMap(tasks(in:))
         }
     }
 
-    func createTask(_ draft: TaskDraft) async throws -> TaskItem {
+    func fetchDestinations() async throws -> [TaskDestination] {
         try withFolderAccess {
+            var files = try markdownFiles()
             let inboxURL = rootURL.appendingPathComponent("Inbox.md", isDirectory: false)
+
+            if !files.contains(where: { $0.standardizedFileURL == inboxURL.standardizedFileURL }) {
+                files.insert(inboxURL, at: 0)
+            }
+
+            return files.map(destination(for:))
+        }
+    }
+
+    func createTask(_ draft: TaskDraft, in destination: TaskDestination) async throws -> TaskItem {
+        guard destination.sourceID == descriptor.id else {
+            throw MarkdownSourceError.invalidDestination
+        }
+
+        return try withFolderAccess {
+            let fileURL = try fileURL(for: destination)
             let existingContents: String
 
-            if fileManager.fileExists(atPath: inboxURL.path) {
-                existingContents = try String(contentsOf: inboxURL, encoding: .utf8)
+            if fileManager.fileExists(atPath: fileURL.path) {
+                existingContents = try String(contentsOf: fileURL, encoding: .utf8)
             } else {
                 existingContents = ""
             }
@@ -51,7 +48,7 @@ actor MarkdownTaskSource: TaskSourceAdapter {
             let prefix = existingContents.isEmpty || existingContents.hasSuffix(lineEnding) ? "" : lineEnding
             let line = makeTaskLine(from: draft)
             let updatedContents = existingContents + prefix + line + lineEnding
-            try updatedContents.write(to: inboxURL, atomically: true, encoding: .utf8)
+            try updatedContents.write(to: fileURL, atomically: true, encoding: .utf8)
 
             let existingLines = existingContents.components(separatedBy: lineEnding)
             let lineNumber: Int
@@ -65,7 +62,7 @@ actor MarkdownTaskSource: TaskSourceAdapter {
 
             return task(
                 from: MarkdownTaskParser.parse(line)!,
-                relativePath: "Inbox.md",
+                relativePath: destination.adapterID,
                 lineNumber: lineNumber,
                 originalLine: line
             )
@@ -120,6 +117,59 @@ actor MarkdownTaskSource: TaskSourceAdapter {
                     originalLine: line
                 )
             }
+    }
+
+    private func markdownFiles() throws -> [URL] {
+        let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey, .isHiddenKey]
+        guard let enumerator = fileManager.enumerator(
+            at: rootURL,
+            includingPropertiesForKeys: Array(resourceKeys),
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            throw MarkdownSourceError.cannotReadFolder
+        }
+
+        return enumerator
+            .compactMap { $0 as? URL }
+            .filter { url in
+                guard url.pathExtension.localizedCaseInsensitiveCompare("md") == .orderedSame,
+                      let values = try? url.resourceValues(forKeys: resourceKeys) else {
+                    return false
+                }
+                return values.isRegularFile == true && values.isHidden != true
+            }
+            .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+    }
+
+    private func destination(for fileURL: URL) -> TaskDestination {
+        let relativePath = relativePath(for: fileURL)
+        let parentPath = (relativePath as NSString).deletingLastPathComponent
+
+        return TaskDestination(
+            sourceID: descriptor.id,
+            adapterID: relativePath,
+            displayName: fileURL.lastPathComponent,
+            detail: parentPath == "." || parentPath.isEmpty ? nil : parentPath,
+            symbolName: "doc.plaintext"
+        )
+    }
+
+    private func fileURL(for destination: TaskDestination) throws -> URL {
+        let pathExtension = (destination.adapterID as NSString).pathExtension
+        guard pathExtension.localizedCaseInsensitiveCompare("md") == .orderedSame else {
+            throw MarkdownSourceError.invalidDestination
+        }
+
+        let fileURL = rootURL
+            .appendingPathComponent(destination.adapterID, isDirectory: false)
+            .standardizedFileURL
+        let rootPath = rootURL.standardizedFileURL.path
+
+        guard fileURL.path.hasPrefix(rootPath + "/") else {
+            throw MarkdownSourceError.invalidDestination
+        }
+
+        return fileURL
     }
 
     private func task(
@@ -282,6 +332,7 @@ private enum MarkdownDueDate {
 
 enum MarkdownSourceError: LocalizedError {
     case cannotReadFolder
+    case invalidDestination
     case missingLocation
     case taskMovedOrChanged
 
@@ -289,6 +340,8 @@ enum MarkdownSourceError: LocalizedError {
         switch self {
         case .cannotReadFolder:
             "Doist couldn't read that Markdown folder."
+        case .invalidDestination:
+            "That Markdown destination is no longer available."
         case .missingLocation:
             "This task is missing its Markdown file location."
         case .taskMovedOrChanged:
