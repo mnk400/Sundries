@@ -40,7 +40,7 @@ struct MenuBarContentView: View {
 
             footer
         }
-        .frame(width: 416, height: 548)
+        .frame(width: 536, height: 548)
         .animation(feedbackAnimation, value: taskStore.parsedDraft != nil)
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
         .onAppear {
@@ -77,14 +77,14 @@ struct MenuBarContentView: View {
                 .help("Clear search")
             }
         }
-        .padding(.horizontal, 13)
-        .frame(height: 40)
+        .padding(.horizontal, 12)
+        .frame(height: 34)
         .glassEffect(
             .regular,
-            in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
-        .padding(.horizontal, 7)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 5)
     }
 
     private var footer: some View {
@@ -103,8 +103,8 @@ struct MenuBarContentView: View {
             .glassEffect(.regular.interactive(), in: Circle())
             .help("Settings")
         }
-        .padding(.horizontal, 10)
-        .frame(height: 46)
+        .padding(.horizontal, 14)
+        .frame(height: 42)
         .overlay(alignment: .top) { Divider() }
     }
 }

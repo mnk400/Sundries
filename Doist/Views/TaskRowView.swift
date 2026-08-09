@@ -9,7 +9,7 @@ struct TaskRowView: View {
     let section: TaskSection
 
     var body: some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: 15) {
             Button {
                 withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.25, extraBounce: 0)) {
                     taskStore.complete(task)
@@ -57,7 +57,7 @@ struct TaskRowView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24)
         .padding(.vertical, 8)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)

@@ -32,7 +32,7 @@ struct TaskListView: View {
                 .tracking(0.45)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
-                .padding(.top, 18)
+                .padding(.top, 22)
                 .padding(.bottom, 6)
 
             ForEach(group.tasks) { task in
