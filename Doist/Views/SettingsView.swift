@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var taskStore: TaskStore
+    @AppStorage(MenuBarCountMode.storageKey) private var menuBarCountMode = MenuBarCountMode.dueToday.rawValue
 
     var body: some View {
         ScrollView {
@@ -61,6 +62,28 @@ struct SettingsView: View {
                         }
                         .labelsHidden()
                         .frame(width: 150)
+                    }
+                    .padding(12)
+                }
+
+                settingsSection("Menu Bar") {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Neutral count")
+                            Text("Choose what the neutral menu-bar number represents.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Picker("Neutral count", selection: $menuBarCountMode) {
+                            ForEach(MenuBarCountMode.allCases) { mode in
+                                Text(mode.displayName).tag(mode.rawValue)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 160)
                     }
                     .padding(12)
                 }

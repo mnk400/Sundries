@@ -1,9 +1,33 @@
 import AppKit
 import SwiftUI
 
+enum MenuBarCountMode: String, CaseIterable, Identifiable {
+    static let storageKey = "menuBarCountMode"
+
+    case dueToday
+    case totalOpen
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .dueToday: "Due Today"
+        case .totalOpen: "Total Open Tasks"
+        }
+    }
+
+    var accessibilityDescription: String {
+        switch self {
+        case .dueToday: "due today"
+        case .totalOpen: "open in total"
+        }
+    }
+}
+
 @main
 struct DoistApp: App {
     @StateObject private var taskStore = TaskStore()
+    @AppStorage(MenuBarCountMode.storageKey) private var menuBarCountModeRawValue = MenuBarCountMode.dueToday.rawValue
 
     var body: some Scene {
         MenuBarExtra {
@@ -12,7 +36,8 @@ struct DoistApp: App {
         } label: {
             MenuBarLabelView(
                 overdueCount: taskStore.overdueCount,
-                todayCount: taskStore.todayCount
+                secondaryCount: secondaryCount,
+                secondaryCountDescription: menuBarCountMode.accessibilityDescription
             )
         }
         .menuBarExtraStyle(.window)
@@ -22,6 +47,17 @@ struct DoistApp: App {
                 .environmentObject(taskStore)
         }
     }
+
+    private var menuBarCountMode: MenuBarCountMode {
+        MenuBarCountMode(rawValue: menuBarCountModeRawValue) ?? .dueToday
+    }
+
+    private var secondaryCount: Int {
+        switch menuBarCountMode {
+        case .dueToday: taskStore.todayCount
+        case .totalOpen: taskStore.openCount
+        }
+    }
 }
 
 private struct MenuBarLabelView: View {
@@ -29,13 +65,14 @@ private struct MenuBarLabelView: View {
     @Environment(\.displayScale) private var displayScale
 
     let overdueCount: Int
-    let todayCount: Int
+    let secondaryCount: Int
+    let secondaryCountDescription: String
 
     var body: some View {
         Image(nsImage: renderedPill)
             .renderingMode(.original)
             .accessibilityLabel(
-                "Doist, \(overdueCount) overdue and \(todayCount) due today"
+                "Doist, \(overdueCount) overdue and \(secondaryCount) \(secondaryCountDescription)"
             )
     }
 
@@ -43,7 +80,7 @@ private struct MenuBarLabelView: View {
         let renderer = ImageRenderer(
             content: MenuBarPillArtwork(
                 overdueCount: overdueCount,
-                todayCount: todayCount
+                secondaryCount: secondaryCount
             )
             .environment(\.colorScheme, colorScheme)
         )
@@ -57,7 +94,7 @@ private struct MenuBarLabelView: View {
 
 private struct MenuBarPillArtwork: View {
     let overdueCount: Int
-    let todayCount: Int
+    let secondaryCount: Int
 
     var body: some View {
         HStack(spacing: 0) {
@@ -65,7 +102,7 @@ private struct MenuBarPillArtwork: View {
                 countSegment(overdueCount, isOverdue: true)
             }
 
-            countSegment(todayCount, isOverdue: false)
+            countSegment(secondaryCount, isOverdue: false)
         }
         .font(.system(size: 13, weight: .semibold))
         .monospacedDigit()
@@ -81,7 +118,7 @@ private struct MenuBarPillArtwork: View {
             .frame(minWidth: 28, minHeight: 22, maxHeight: 22)
             .background {
                 Rectangle()
-                    .fill(isOverdue ? Color.red : Color.clear)
+                    .fill(isOverdue ? Color(red: 0.78, green: 0.24, blue: 0.28) : Color.clear)
             }
     }
 }
