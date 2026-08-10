@@ -46,7 +46,6 @@ struct SundriesApp: App {
             SettingsView()
                 .environmentObject(taskStore)
         }
-        .windowStyle(.hiddenTitleBar)
     }
 
     private var menuBarCountMode: MenuBarCountMode {

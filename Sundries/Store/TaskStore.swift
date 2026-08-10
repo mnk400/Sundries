@@ -23,7 +23,7 @@ final class TaskStore: ObservableObject {
     @Published private(set) var destinations: [TaskDestination] = []
     @Published private(set) var selectedDestinationID: String?
     @Published private(set) var isLoading = false
-    @Published private(set) var sourceError: String?
+    @Published private(set) var sourceIssue: SourceIssue?
     @Published private var dueDateOverride = TaskDueDateOverride.automatic
 
     let sources: [TaskSourceDescriptor] = [.markdown, .reminders]
@@ -40,15 +40,16 @@ final class TaskStore: ObservableObject {
 
         self.tasks = []
 
-        do {
-            if let folderURL = try MarkdownFolderBookmark.restore() {
-                markdownFolderURL = folderURL
-                let source = MarkdownTaskSource(rootURL: folderURL)
-                sourceAdapters[source.descriptor.id] = source
-                refreshTasks()
-            }
-        } catch {
-            sourceError = error.localizedDescription
+        switch MarkdownFolderBookmark.restore() {
+        case .notConfigured:
+            break
+        case .folder(let folderURL):
+            markdownFolderURL = folderURL
+            let source = MarkdownTaskSource(rootURL: folderURL)
+            sourceAdapters[source.descriptor.id] = source
+            refreshTasks()
+        case .unresolvable:
+            sourceIssue = .markdownFolderUnresolvable
         }
     }
 
@@ -144,10 +145,10 @@ final class TaskStore: ObservableObject {
             tasks = []
             destinations = []
             selectedDestinationID = nil
-            sourceError = nil
+            sourceIssue = nil
             refreshTasks()
         } catch {
-            sourceError = error.localizedDescription
+            sourceIssue = .operationFailed(error, sourceID: TaskSourceDescriptor.markdown.id)
         }
     }
 
@@ -193,11 +194,11 @@ final class TaskStore: ObservableObject {
                 let task = try await adapter.createTask(draft, in: destination)
                 tasks.append(task)
                 recordUse(of: destination)
-                sourceError = nil
+                sourceIssue = nil
             } catch {
                 query = originalQuery
                 dueDateOverride = originalDueDateOverride
-                sourceError = error.localizedDescription
+                sourceIssue = .operationFailed(error, sourceID: draft.sourceID)
             }
         }
     }
@@ -212,13 +213,13 @@ final class TaskStore: ObservableObject {
         Task {
             do {
                 try await adapter.setCompleted(task, isCompleted: true)
-                sourceError = nil
+                sourceIssue = nil
             } catch {
                 if let currentIndex = tasks.firstIndex(where: { $0.id == task.id }) {
                     tasks[currentIndex].isCompleted = false
                 }
                 lastCompletedTask = nil
-                sourceError = error.localizedDescription
+                sourceIssue = .operationFailed(error, sourceID: task.sourceID)
             }
         }
     }
@@ -236,12 +237,12 @@ final class TaskStore: ObservableObject {
         Task {
             do {
                 try await adapter.setCompleted(completedTask, isCompleted: false)
-                sourceError = nil
+                sourceIssue = nil
             } catch {
                 if let currentIndex = tasks.firstIndex(where: { $0.id == completedTask.id }) {
                     tasks[currentIndex].isCompleted = true
                 }
-                sourceError = error.localizedDescription
+                sourceIssue = .operationFailed(error, sourceID: completedTask.sourceID)
             }
         }
     }
@@ -256,17 +257,21 @@ final class TaskStore: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        do {
-            var fetchedTasks: [TaskItem] = []
-            for adapter in sourceAdapters.values {
+        var fetchedTasks: [TaskItem] = []
+        for (sourceID, adapter) in sourceAdapters {
+            do {
                 fetchedTasks += try await adapter.fetchTasks()
+            } catch {
+                sourceIssue = .operationFailed(error, sourceID: sourceID)
+                return
             }
-            tasks = fetchedTasks
-            await reloadDestinations()
-            sourceError = nil
-        } catch {
-            sourceError = error.localizedDescription
         }
+
+        tasks = fetchedTasks
+        // Cleared before reloading destinations so that a destination failure
+        // survives instead of being wiped by this success.
+        sourceIssue = nil
+        await reloadDestinations()
     }
 
     private func reloadDestinations() async {
@@ -283,12 +288,12 @@ final class TaskStore: ObservableObject {
 
             destinations = fetchedDestinations
             selectPreferredDestination(in: fetchedDestinations, sourceID: sourceID)
-            sourceError = nil
+            sourceIssue = nil
         } catch {
             guard sourceID == defaultSourceID else { return }
             destinations = []
             selectedDestinationID = nil
-            sourceError = error.localizedDescription
+            sourceIssue = .operationFailed(error, sourceID: sourceID)
         }
     }
 

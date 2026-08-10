@@ -41,6 +41,42 @@ struct TaskSourceDescriptor: Identifiable, Hashable, Sendable {
     )
 }
 
+/// Something wrong with a configured source, attributed to the source it belongs to
+/// so the UI can show it against that row rather than as a loose banner.
+struct SourceIssue: Equatable, Sendable {
+    enum Kind: Equatable, Sendable {
+        /// A folder was chosen once, but its bookmark no longer resolves.
+        case folderUnresolvable
+        /// Reading from or writing to an otherwise-configured source failed.
+        case operationFailed
+    }
+
+    let sourceID: String
+    let kind: Kind
+    let message: String
+
+    var symbolName: String {
+        switch kind {
+        case .folderUnresolvable: "exclamationmark.triangle.fill"
+        case .operationFailed: "exclamationmark.circle.fill"
+        }
+    }
+
+    static let markdownFolderUnresolvable = SourceIssue(
+        sourceID: TaskSourceDescriptor.markdown.id,
+        kind: .folderUnresolvable,
+        message: "Sundries lost access to the folder you chose. Choose it again to reconnect."
+    )
+
+    static func operationFailed(_ error: Error, sourceID: String) -> SourceIssue {
+        SourceIssue(
+            sourceID: sourceID,
+            kind: .operationFailed,
+            message: error.localizedDescription
+        )
+    }
+}
+
 /// A source-owned place where a new task can be created.
 ///
 /// Markdown exposes files, Apple Reminders can expose lists, and future adapters
