@@ -148,7 +148,7 @@ final class TaskStore: ObservableObject {
             sourceIssue = nil
             refreshTasks()
         } catch {
-            sourceIssue = .operationFailed(error, sourceID: TaskSourceDescriptor.markdown.id)
+            sourceIssue = .from(error, sourceID: TaskSourceDescriptor.markdown.id)
         }
     }
 
@@ -198,7 +198,7 @@ final class TaskStore: ObservableObject {
             } catch {
                 query = originalQuery
                 dueDateOverride = originalDueDateOverride
-                sourceIssue = .operationFailed(error, sourceID: draft.sourceID)
+                sourceIssue = .from(error, sourceID: draft.sourceID)
             }
         }
     }
@@ -219,7 +219,7 @@ final class TaskStore: ObservableObject {
                     tasks[currentIndex].isCompleted = false
                 }
                 lastCompletedTask = nil
-                sourceIssue = .operationFailed(error, sourceID: task.sourceID)
+                sourceIssue = .from(error, sourceID: task.sourceID)
             }
         }
     }
@@ -242,13 +242,17 @@ final class TaskStore: ObservableObject {
                 if let currentIndex = tasks.firstIndex(where: { $0.id == completedTask.id }) {
                     tasks[currentIndex].isCompleted = true
                 }
-                sourceIssue = .operationFailed(error, sourceID: completedTask.sourceID)
+                sourceIssue = .from(error, sourceID: completedTask.sourceID)
             }
         }
     }
 
     func dismissCompletionFeedback() {
         lastCompletedTask = nil
+    }
+
+    func dismissSourceIssue() {
+        sourceIssue = nil
     }
 
     private func reloadTasks() async {
@@ -262,7 +266,7 @@ final class TaskStore: ObservableObject {
             do {
                 fetchedTasks += try await adapter.fetchTasks()
             } catch {
-                sourceIssue = .operationFailed(error, sourceID: sourceID)
+                sourceIssue = .from(error, sourceID: sourceID)
                 return
             }
         }
@@ -293,7 +297,7 @@ final class TaskStore: ObservableObject {
             guard sourceID == defaultSourceID else { return }
             destinations = []
             selectedDestinationID = nil
-            sourceIssue = .operationFailed(error, sourceID: sourceID)
+            sourceIssue = .from(error, sourceID: sourceID)
         }
     }
 
@@ -323,7 +327,9 @@ final class TaskStore: ObservableObject {
         UserDefaults.standard.set(recentDestinationIDs, forKey: DestinationPreferences.recentIDsKey)
     }
 
-    private static func sampleTasks(calendar: Calendar = .current) -> [TaskItem] {
+    /// Backs the SwiftUI previews, which otherwise render the empty state and
+    /// show nothing worth looking at.
+    static func sampleTasks(calendar: Calendar = .current) -> [TaskItem] {
         func date(dayOffset: Int, hour: Int = 17) -> Date {
             let shiftedDate = calendar.date(byAdding: .day, value: dayOffset, to: .now)!
             return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: shiftedDate)!

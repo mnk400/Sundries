@@ -182,5 +182,5 @@ private extension View {
 
 #Preview {
     SettingsView()
-        .environmentObject(TaskStore())
+        .environmentObject(TaskStore(tasks: TaskStore.sampleTasks()))
 }

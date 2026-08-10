@@ -22,7 +22,14 @@ struct TaskListView: View {
                     ContentUnavailableView(
                         "No matching todos",
                         systemImage: "checkmark.circle",
-                        description: Text("Press Return to add this as a new todo.")
+                        // Only promise Return when it will actually do something —
+                        // `createTask` returns early without a destination, so this
+                        // used to be a dead end whenever the folder was unreachable.
+                        description: Text(
+                            taskStore.selectedDestination == nil
+                                ? "Sundries has nowhere to add todos right now."
+                                : "Press Return to add this as a new todo."
+                        )
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.top, 74)

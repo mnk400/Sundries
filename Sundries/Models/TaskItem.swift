@@ -16,7 +16,10 @@ struct TaskItem: Identifiable, Hashable, Sendable {
         title: String,
         note: String? = nil,
         dueDate: Date? = nil,
-        dueDateIncludesTime: Bool = true,
+        // Date-only by default. Sources that genuinely carry a time of day — an
+        // issue tracker's SLA, say — opt in; showing a time nobody set is worse
+        // than omitting one.
+        dueDateIncludesTime: Bool = false,
         isCompleted: Bool = false,
         sourceID: String,
         context: String? = nil,
@@ -63,10 +66,10 @@ enum TaskSection: Int, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    func contains(_ date: Date?, calendar: Calendar = .current) -> Bool {
+    func contains(_ date: Date?, now: Date = .now, calendar: Calendar = .current) -> Bool {
         guard let date else { return self == .unscheduled }
 
-        let startOfToday = calendar.startOfDay(for: .now)
+        let startOfToday = calendar.startOfDay(for: now)
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
         let startOfFollowingDay = calendar.date(byAdding: .day, value: 2, to: startOfToday)!
 

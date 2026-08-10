@@ -1,8 +1,10 @@
 # Sundries
 
-Sundries is a native macOS menu-bar task management companion. Sundries gathers tasks from various places, and has a well defined adapter interface to be extendable to various sources.
+Sundries is a native macOS menu-bar tasks and to-do management companion. Sundries gathers tasks from various places, and has a well defined adapter interface to be extendable to various sources.
 
-> Sundries is currently an early alpha right now, only markdown file source is working right now. Data formats and behavior may change
+Long term sundries aims to add task management support for: Raw Markdown, Apple Reminders, Jira, Linear, <insert-your-task-management-app-here>. The "support" implies not the complete featureset but a sufficient amount
+
+> Sundries is currently an early alpha, only markdown support is working right now. Data formats and behavior may change
 
 ![](docs/ui-screenshot.png)
 

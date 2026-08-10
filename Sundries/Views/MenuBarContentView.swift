@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct MenuBarContentView: View {
@@ -56,7 +57,21 @@ struct MenuBarContentView: View {
             TaskListView()
                 .environmentObject(taskStore)
 
-            if let completedTask = taskStore.lastCompletedTask {
+            // One slot, and a problem outranks a confirmation: a failed write is
+            // the thing the user needs to know about, and the undo it would be
+            // covering is stale anyway.
+            if let issue = taskStore.sourceIssue {
+                SourceIssueBar(
+                    issue: issue,
+                    openSettings: { openSettings() },
+                    dismiss: {
+                        withAnimation(feedbackAnimation) {
+                            taskStore.dismissSourceIssue()
+                        }
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else if let completedTask = taskStore.lastCompletedTask {
                 UndoBar(
                     task: completedTask,
                     undo: {
@@ -78,6 +93,7 @@ struct MenuBarContentView: View {
         .frame(width: 536, height: 548)
         .animation(feedbackAnimation, value: taskStore.parsedDraft != nil)
         .animation(feedbackAnimation, value: taskStore.lastCompletedTask?.id)
+        .animation(feedbackAnimation, value: taskStore.sourceIssue)
         .onChange(of: taskStore.query) { _, query in
             if query.isEmpty {
                 composerDrawer.dismiss()
@@ -126,23 +142,51 @@ struct MenuBarContentView: View {
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text("\(taskStore.openCount) open")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.tertiary)
 
+            if taskStore.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.7)
+            }
+
             Spacer()
 
-            Button {
-                openSettings()
+            Menu {
+                Button("Refresh") {
+                    taskStore.refreshTasks()
+                }
+                .keyboardShortcut("r", modifiers: .command)
+
+                Button("Settings…") {
+                    // Under LSUIElement there is no app to come forward on its
+                    // own, so the Settings window otherwise opens behind whatever
+                    // the user was looking at.
+                    NSApplication.shared.activate()
+                    openSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+
+                Divider()
+
+                // Without this there is no way out of the app at all: LSUIElement
+                // means no Dock icon and no app menu, and the panel is entirely
+                // custom content.
+                Button("Quit Sundries") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .keyboardShortcut("q", modifiers: .command)
             } label: {
-                Image(systemName: "gearshape")
+                Image(systemName: "ellipsis.circle")
                     .font(.system(size: 15, weight: .medium))
-                    .frame(width: 30, height: 30)
-                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
-            .help("Settings")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .frame(width: 30, height: 30)
+            .help("More")
         }
         .padding(.leading, 20)
         .padding(.trailing, 14)
@@ -604,6 +648,62 @@ private struct DestinationRow: View {
     }
 }
 
+/// Errors used to surface only in Settings → Sources, so a failed write looked
+/// from the panel like the app quietly undoing itself.
+private struct SourceIssueBar: View {
+    let issue: SourceIssue
+    let openSettings: () -> Void
+    let dismiss: () -> Void
+
+    /// A source that needs setup is fixed in Settings; a failed read or write is
+    /// worth retrying where the user already is.
+    private var isRecoverableInSettings: Bool {
+        issue.kind == .needsSetup
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: issue.symbolName)
+                .foregroundStyle(.orange)
+
+            Text(issue.message)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 8)
+
+            if isRecoverableInSettings {
+                Button("Settings…", action: openSettings)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                    .fontWeight(.medium)
+            }
+
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .help("Dismiss")
+        }
+        .font(.callout)
+        .padding(.leading, 14)
+        .padding(.trailing, 6)
+        .padding(.vertical, 8)
+        .frame(minHeight: 44)
+        .glassEffect(
+            .regular,
+            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+        )
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .accessibilityElement(children: .contain)
+    }
+}
+
 private struct UndoBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
@@ -720,5 +820,5 @@ private struct UndoBar: View {
 
 #Preview {
     MenuBarContentView()
-        .environmentObject(TaskStore())
+        .environmentObject(TaskStore(tasks: TaskStore.sampleTasks()))
 }

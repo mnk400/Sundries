@@ -3,11 +3,29 @@ import Foundation
 actor MarkdownTaskSource: TaskSourceAdapter {
     nonisolated let descriptor = TaskSourceDescriptor.markdown
 
+    /// The URL exactly as the bookmark resolved it. Security-scoped access is tied
+    /// to this instance, so deriving a new URL from it — even one pointing at the
+    /// same folder — is not guaranteed to carry the scope.
+    private let accessURL: URL
+    /// A standardized copy, used only for path comparison and relative paths.
     private let rootURL: URL
+    /// Both the chosen path and its symlink-resolved form. A vault reached
+    /// through a symlink enumerates to resolved paths that share neither prefix
+    /// with the path the user picked, and a relative path that cannot be derived
+    /// stops being unique.
+    private let rootPathCandidates: [String]
     private let fileManager = FileManager.default
 
     init(rootURL: URL) {
-        self.rootURL = rootURL.standardizedFileURL
+        accessURL = rootURL
+
+        let standardizedURL = rootURL.standardizedFileURL
+        self.rootURL = standardizedURL
+
+        let resolvedPath = standardizedURL.resolvingSymlinksInPath().path
+        rootPathCandidates = standardizedURL.path == resolvedPath
+            ? [standardizedURL.path]
+            : [standardizedURL.path, resolvedPath]
     }
 
     func fetchTasks() async throws -> [TaskItem] {
@@ -44,21 +62,10 @@ actor MarkdownTaskSource: TaskSourceAdapter {
                 existingContents = ""
             }
 
-            let lineEnding = existingContents.contains("\r\n") ? "\r\n" : "\n"
-            let prefix = existingContents.isEmpty || existingContents.hasSuffix(lineEnding) ? "" : lineEnding
+            var document = MarkdownDocument(contents: existingContents)
             let line = makeTaskLine(from: draft)
-            let updatedContents = existingContents + prefix + line + lineEnding
-            try updatedContents.write(to: fileURL, atomically: true, encoding: .utf8)
-
-            let existingLines = existingContents.components(separatedBy: lineEnding)
-            let lineNumber: Int
-            if existingContents.isEmpty {
-                lineNumber = 0
-            } else if existingContents.hasSuffix(lineEnding) {
-                lineNumber = existingLines.count - 1
-            } else {
-                lineNumber = existingLines.count
-            }
+            let lineNumber = document.appendLine(line)
+            try document.text.write(to: fileURL, atomically: true, encoding: .utf8)
 
             return task(
                 from: MarkdownTaskParser.parse(line)!,
@@ -77,36 +84,49 @@ actor MarkdownTaskSource: TaskSourceAdapter {
         try withFolderAccess {
             let fileURL = rootURL.appendingPathComponent(location.relativePath, isDirectory: false)
             let contents = try String(contentsOf: fileURL, encoding: .utf8)
-            let lineEnding = contents.contains("\r\n") ? "\r\n" : "\n"
-            var lines = contents.components(separatedBy: lineEnding)
+            var document = MarkdownDocument(contents: contents)
 
             let targetIndex = matchingLineIndex(
                 for: task,
                 location: location,
-                in: lines
+                in: document.lines
             )
 
             guard let targetIndex,
-                  let parsedLine = MarkdownTaskParser.parse(lines[targetIndex]) else {
+                  let parsedLine = MarkdownTaskParser.parse(document.lines[targetIndex]) else {
                 throw MarkdownSourceError.taskMovedOrChanged
             }
 
-            lines[targetIndex] = parsedLine.replacingCompletion(with: isCompleted)
-            try lines.joined(separator: lineEnding).write(
-                to: fileURL,
-                atomically: true,
-                encoding: .utf8
+            document.replaceLine(
+                at: targetIndex,
+                with: parsedLine.replacingMarker(
+                    with: marker(isCompleted: isCompleted, reopeningTo: location)
+                )
             )
+            try document.text.write(to: fileURL, atomically: true, encoding: .utf8)
         }
+    }
+
+    /// Completing always writes `x`. Reopening restores whatever the line looked
+    /// like before Sundries touched it, so undoing a completion on an in-progress
+    /// `[/]` task does not quietly demote it to `[ ]`.
+    private func marker(isCompleted: Bool, reopeningTo location: MarkdownTaskLocation) -> Character {
+        guard !isCompleted else { return MarkdownTaskParser.completedMarker }
+
+        guard let previousMarker = MarkdownTaskParser.parse(location.originalLine)?.marker,
+              !MarkdownTaskParser.isResolved(previousMarker) else {
+            return MarkdownTaskParser.openMarker
+        }
+
+        return previousMarker
     }
 
     private func tasks(in fileURL: URL) throws -> [TaskItem] {
         let contents = try String(contentsOf: fileURL, encoding: .utf8)
         let relativePath = relativePath(for: fileURL)
-        let lineEnding = contents.contains("\r\n") ? "\r\n" : "\n"
 
-        return contents
-            .components(separatedBy: lineEnding)
+        return MarkdownDocument(contents: contents)
+            .lines
             .enumerated()
             .compactMap { lineNumber, line in
                 guard let parsedLine = MarkdownTaskParser.parse(line) else { return nil }
@@ -126,7 +146,7 @@ actor MarkdownTaskSource: TaskSourceAdapter {
             includingPropertiesForKeys: Array(resourceKeys),
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
-            throw MarkdownSourceError.cannotReadFolder
+            throw MarkdownSourceError.folderUnavailable
         }
 
         return enumerator
@@ -226,49 +246,169 @@ actor MarkdownTaskSource: TaskSourceAdapter {
     }
 
     private func relativePath(for fileURL: URL) -> String {
-        let rootPath = rootURL.path
         let filePath = fileURL.standardizedFileURL.path
-        guard filePath.hasPrefix(rootPath + "/") else { return fileURL.lastPathComponent }
-        return String(filePath.dropFirst(rootPath.count + 1))
+
+        for rootPath in rootPathCandidates where filePath.hasPrefix(rootPath + "/") {
+            return String(filePath.dropFirst(rootPath.count + 1))
+        }
+
+        // Deliberately not the file name: two files in different folders would
+        // then share a relative path, and so an identity — completing one would
+        // flip the other. A full path keeps them distinct and makes any later
+        // write fail loudly instead of hitting the wrong file.
+        return filePath
     }
 
     private func withFolderAccess<T>(_ operation: () throws -> T) throws -> T {
-        let didStartAccessing = rootURL.startAccessingSecurityScopedResource()
+        let didStartAccessing = accessURL.startAccessingSecurityScopedResource()
         defer {
             if didStartAccessing {
-                rootURL.stopAccessingSecurityScopedResource()
+                accessURL.stopAccessingSecurityScopedResource()
             }
         }
+
+        // One reachability check covers reading, writing, and destination lookup.
+        // Without it a deleted folder reads as an empty one, and `fetchDestinations`
+        // still offers its synthesized Inbox.md — a destination pointing at nothing,
+        // which turns into a confusing write failure naming a file rather than the
+        // folder that actually went missing.
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: rootURL.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            throw MarkdownSourceError.folderUnavailable
+        }
+
         return try operation()
     }
 
 }
 
-enum MarkdownTaskParser {
-    struct ParsedLine {
-        let title: String
-        let dueDate: Date?
-        let isCompleted: Bool
-        let markerRange: Range<String.Index>
-        let originalLine: String
+/// A Markdown file split into lines, remembering each line's own terminator.
+///
+/// Picking one line ending for the whole file and splitting on it loses tasks in
+/// a file with mixed endings: the lone-`\n` runs collapse into a single line the
+/// parser cannot match, and those tasks silently disappear. Tracking terminators
+/// per line also means rewriting a file puts back exactly what was there.
+struct MarkdownDocument {
+    private(set) var lines: [String]
+    private var terminators: [String]
 
-        func replacingCompletion(with isCompleted: Bool) -> String {
-            originalLine.replacingCharacters(
-                in: markerRange,
-                with: isCompleted ? "x" : " "
-            )
+    init(contents: String) {
+        var lines: [String] = []
+        var terminators: [String] = []
+        var lineStart = contents.startIndex
+        var index = contents.startIndex
+
+        while index < contents.endIndex {
+            let character = contents[index]
+            let next = contents.index(after: index)
+
+            if Self.isLineBreak(character) {
+                lines.append(String(contents[lineStart..<index]))
+                terminators.append(String(character))
+                lineStart = next
+            }
+
+            index = next
+        }
+
+        // Anything after the final terminator is a last, unterminated line. When
+        // the file ends with a terminator this is empty and adds no phantom line.
+        let trailing = contents[lineStart...]
+        if !trailing.isEmpty {
+            lines.append(String(trailing))
+            terminators.append("")
+        }
+
+        self.lines = lines
+        self.terminators = terminators
+    }
+
+    var text: String {
+        zip(lines, terminators).reduce(into: "") { result, line in
+            result += line.0
+            result += line.1
         }
     }
 
+    mutating func replaceLine(at index: Int, with line: String) {
+        lines[index] = line
+    }
+
+    /// Appends a line, terminating the previous last line first if the file did
+    /// not end with a newline. Returns the index the new line landed on.
+    mutating func appendLine(_ line: String) -> Int {
+        let terminator = preferredTerminator
+
+        if let lastIndex = terminators.indices.last, terminators[lastIndex].isEmpty {
+            terminators[lastIndex] = terminator
+        }
+
+        lines.append(line)
+        terminators.append(terminator)
+        return lines.count - 1
+    }
+
+    private var preferredTerminator: String {
+        terminators.first(where: { !$0.isEmpty }) ?? "\n"
+    }
+
+    /// Swift treats CRLF as a single `Character`, so all three common endings are
+    /// covered without any look-ahead.
+    private static func isLineBreak(_ character: Character) -> Bool {
+        character == "\n" || character == "\r" || character == "\r\n"
+    }
+}
+
+enum MarkdownTaskParser {
+    static let openMarker: Character = " "
+    static let completedMarker: Character = "x"
+
+    /// Markers that mean the task is settled and belongs out of the list.
+    ///
+    /// `x` is done and `-` is the widely used "cancelled" convention. Everything
+    /// else counts as open — including `/` (in progress) and `>` (forwarded) —
+    /// because refusing to display a marker we do not recognize reads as data
+    /// loss rather than as filtering. Source-defined status arrives in 0.2.
+    static func isResolved(_ marker: Character) -> Bool {
+        marker == "x" || marker == "X" || marker == "-"
+    }
+
+    struct ParsedLine {
+        let title: String
+        let dueDate: Date?
+        let marker: Character
+        let markerRange: Range<String.Index>
+        let originalLine: String
+
+        var isCompleted: Bool { MarkdownTaskParser.isResolved(marker) }
+
+        func replacingMarker(with marker: Character) -> String {
+            originalLine.replacingCharacters(in: markerRange, with: String(marker))
+        }
+    }
+
+    /// Compiled once rather than per line. Every line of every Markdown file used
+    /// to pay for three regex compilations, which dominated the cost of reading a
+    /// vault of any real size.
+    private static let checkboxExpression = try! NSRegularExpression(
+        pattern: #"^(\s*[-*+]\s+\[)([^\]])(\]\s+)(.*)$"#
+    )
+    private static let dueDateExpression = try! NSRegularExpression(
+        pattern: #"(?:📅\s*|@due\()(\d{4}-\d{2}-\d{2})\)?"#
+    )
+    private static let dueDateStrippingExpression = try! NSRegularExpression(
+        pattern: #"\s*(?:📅\s*\d{4}-\d{2}-\d{2}|@due\(\d{4}-\d{2}-\d{2}\))\s*"#
+    )
+
     static func parse(_ line: String) -> ParsedLine? {
-        let checkboxPattern = #"^(\s*[-*+]\s+\[)([ xX])(\]\s+)(.*)$"#
-        guard let expression = try? NSRegularExpression(pattern: checkboxPattern),
-              let match = expression.firstMatch(
+        guard let match = checkboxExpression.firstMatch(
                 in: line,
                 range: NSRange(line.startIndex..., in: line)
               ),
               let markerRange = Range(match.range(at: 2), in: line),
-              let contentRange = Range(match.range(at: 4), in: line) else {
+              let contentRange = Range(match.range(at: 4), in: line),
+              let marker = line[markerRange].first else {
             return nil
         }
 
@@ -282,16 +422,14 @@ enum MarkdownTaskParser {
         return ParsedLine(
             title: title,
             dueDate: dueDate,
-            isCompleted: line[markerRange] != " ",
+            marker: marker,
             markerRange: markerRange,
             originalLine: line
         )
     }
 
     private static func parseDueDate(in content: String) -> Date? {
-        let datePattern = #"(?:📅\s*|@due\()(\d{4}-\d{2}-\d{2})\)?"#
-        guard let expression = try? NSRegularExpression(pattern: datePattern),
-              let match = expression.firstMatch(
+        guard let match = dueDateExpression.firstMatch(
                 in: content,
                 range: NSRange(content.startIndex..., in: content)
               ),
@@ -303,49 +441,59 @@ enum MarkdownTaskParser {
     }
 
     private static func removingDueDate(from content: String) -> String {
-        let datePattern = #"\s*(?:📅\s*\d{4}-\d{2}-\d{2}|@due\(\d{4}-\d{2}-\d{2}\))\s*"#
-        return content.replacingOccurrences(
-            of: datePattern,
-            with: " ",
-            options: .regularExpression
+        dueDateStrippingExpression.stringByReplacingMatches(
+            in: content,
+            range: NSRange(content.startIndex..., in: content),
+            withTemplate: " "
         )
     }
 }
 
 private enum MarkdownDueDate {
-    static func parse(_ value: String) -> Date? {
-        formatter().date(from: value)
-    }
-
-    static func format(_ date: Date) -> String {
-        formatter().string(from: date)
-    }
-
-    private static func formatter() -> DateFormatter {
+    /// Built once instead of per date, and never mutated afterwards.
+    private static let formatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
+    }()
+
+    static func parse(_ value: String) -> Date? {
+        formatter.date(from: value)
+    }
+
+    static func format(_ date: Date) -> String {
+        formatter.string(from: date)
     }
 }
 
-enum MarkdownSourceError: LocalizedError {
-    case cannotReadFolder
+enum MarkdownSourceError: LocalizedError, SourceIssueRepresentable {
+    /// Moved, renamed, deleted, or on a volume that is no longer mounted.
+    case folderUnavailable
     case invalidDestination
     case missingLocation
     case taskMovedOrChanged
 
     var errorDescription: String? {
         switch self {
-        case .cannotReadFolder:
-            "Sundries couldn't read that Markdown folder."
+        case .folderUnavailable:
+            "Sundries can't reach the folder you chose. It may have been moved, renamed, or deleted."
         case .invalidDestination:
             "That Markdown destination is no longer available."
         case .missingLocation:
             "This task is missing its Markdown file location."
         case .taskMovedOrChanged:
             "The task moved or changed in its Markdown file. Refresh and try again."
+        }
+    }
+
+    var sourceIssueKind: SourceIssue.Kind {
+        switch self {
+        case .folderUnavailable:
+            .needsSetup
+        case .invalidDestination, .missingLocation, .taskMovedOrChanged:
+            .operationFailed
         }
     }
 }

@@ -1,49 +1,57 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
-	objectVersion = 56;
+	classes = {
+	};
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B00000000000000000000001 /* SundriesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* SundriesApp.swift */; };
-		B00000000000000000000002 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* TaskItem.swift */; };
-		B00000000000000000000003 /* TaskSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* TaskSource.swift */; };
-		B00000000000000000000004 /* TaskDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* TaskDraftParser.swift */; };
-		B00000000000000000000005 /* TaskSourceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* TaskSourceAdapter.swift */; };
-		B00000000000000000000006 /* TaskStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* TaskStore.swift */; };
-		B00000000000000000000007 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* MenuBarContentView.swift */; };
-		B00000000000000000000008 /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* TaskListView.swift */; };
-		B00000000000000000000009 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* TaskRowView.swift */; };
-		B0000000000000000000000A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* SettingsView.swift */; };
-		B0000000000000000000000B /* MarkdownFolderBookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000D /* MarkdownFolderBookmark.swift */; };
-		B0000000000000000000000C /* MarkdownTaskSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* MarkdownTaskSource.swift */; };
-		B0000000000000000000000D /* DrawerMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000F /* DrawerMotion.swift */; };
+		9CF4D30430295FFD00DC94D1 /* Sundries.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9CF4D30330295FFD00DC94D1 /* Sundries.icon */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		H00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000001;
+			remoteInfo = Sundries;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
-		A00000000000000000000001 /* SundriesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SundriesApp.swift; sourceTree = "<group>"; };
-		A00000000000000000000002 /* TaskItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskItem.swift; sourceTree = "<group>"; };
-		A00000000000000000000003 /* TaskSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSource.swift; sourceTree = "<group>"; };
-		A00000000000000000000004 /* TaskDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDraftParser.swift; sourceTree = "<group>"; };
-		A00000000000000000000005 /* TaskSourceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSourceAdapter.swift; sourceTree = "<group>"; };
-		A00000000000000000000006 /* TaskStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStore.swift; sourceTree = "<group>"; };
-		A00000000000000000000007 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
-		A00000000000000000000008 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
-		A00000000000000000000009 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
-		A0000000000000000000000A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A0000000000000000000000B /* Sundries.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sundries.entitlements; sourceTree = "<group>"; };
+		9CF4D30330295FFD00DC94D1 /* Sundries.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Sundries.icon; sourceTree = "<group>"; };
 		A0000000000000000000000C /* Sundries.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sundries.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A0000000000000000000000D /* MarkdownFolderBookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFolderBookmark.swift; sourceTree = "<group>"; };
-		A0000000000000000000000E /* MarkdownTaskSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTaskSource.swift; sourceTree = "<group>"; };
-		A0000000000000000000000F /* DrawerMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerMotion.swift; sourceTree = "<group>"; };
+		A00000000000000000000010 /* SundriesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SundriesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C00000000000000000000002 /* Sundries */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sundries;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000008 /* SundriesTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SundriesTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		G00000000000000000000002 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -53,67 +61,17 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000002 /* Sundries */,
+				C00000000000000000000008 /* SundriesTests */,
 				C00000000000000000000007 /* Products */,
+				9CF4D30330295FFD00DC94D1 /* Sundries.icon */,
 			);
-			sourceTree = "<group>";
-		};
-		C00000000000000000000002 /* Sundries */ = {
-			isa = PBXGroup;
-			children = (
-				A00000000000000000000001 /* SundriesApp.swift */,
-				C00000000000000000000003 /* Models */,
-				C00000000000000000000004 /* Services */,
-				C00000000000000000000005 /* Store */,
-				C00000000000000000000006 /* Views */,
-				A0000000000000000000000B /* Sundries.entitlements */,
-			);
-			path = Sundries;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000003 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				A00000000000000000000002 /* TaskItem.swift */,
-				A00000000000000000000003 /* TaskSource.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000004 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				A0000000000000000000000D /* MarkdownFolderBookmark.swift */,
-				A0000000000000000000000E /* MarkdownTaskSource.swift */,
-				A00000000000000000000004 /* TaskDraftParser.swift */,
-				A00000000000000000000005 /* TaskSourceAdapter.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000005 /* Store */ = {
-			isa = PBXGroup;
-			children = (
-				A00000000000000000000006 /* TaskStore.swift */,
-			);
-			path = Store;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000006 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				A0000000000000000000000F /* DrawerMotion.swift */,
-				A00000000000000000000007 /* MenuBarContentView.swift */,
-				A00000000000000000000008 /* TaskListView.swift */,
-				A00000000000000000000009 /* TaskRowView.swift */,
-				A0000000000000000000000A /* SettingsView.swift */,
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000007 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A0000000000000000000000C /* Sundries.app */,
+				A00000000000000000000010 /* SundriesTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,12 +87,38 @@
 				G00000000000000000000002 /* Frameworks */,
 				G00000000000000000000003 /* Resources */,
 			);
-			buildRules = ();
-			dependencies = ();
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C00000000000000000000002 /* Sundries */,
+			);
 			name = Sundries;
 			productName = Sundries;
 			productReference = A0000000000000000000000C /* Sundries.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* SundriesTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000002 /* Build configuration list for PBXNativeTarget "SundriesTests" */;
+			buildPhases = (
+				G00000000000000000000004 /* Sources */,
+				G00000000000000000000005 /* Frameworks */,
+				G00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				I00000000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C00000000000000000000008 /* SundriesTests */,
+			);
+			name = SundriesTests;
+			productName = SundriesTests;
+			productReference = A00000000000000000000010 /* SundriesTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -149,18 +133,29 @@
 					E00000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
+					E00000000000000000000002 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = E00000000000000000000001;
+					};
 				};
 			};
 			buildConfigurationList = F00000000000000000000001 /* Build configuration list for PBXProject "Sundries" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (
+				en,
+				Base,
+			);
 			mainGroup = C00000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = C00000000000000000000007 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			targets = (E00000000000000000000001 /* Sundries */);
+			targets = (
+				E00000000000000000000001 /* Sundries */,
+				E00000000000000000000002 /* SundriesTests */,
+			);
 		};
 /* End PBXProject section */
 
@@ -168,7 +163,16 @@
 		G00000000000000000000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+				9CF4D30430295FFD00DC94D1 /* Sundries.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G00000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -178,23 +182,25 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B00000000000000000000001 /* SundriesApp.swift in Sources */,
-				B00000000000000000000002 /* TaskItem.swift in Sources */,
-				B00000000000000000000003 /* TaskSource.swift in Sources */,
-				B00000000000000000000004 /* TaskDraftParser.swift in Sources */,
-				B00000000000000000000005 /* TaskSourceAdapter.swift in Sources */,
-				B00000000000000000000006 /* TaskStore.swift in Sources */,
-				B00000000000000000000007 /* MenuBarContentView.swift in Sources */,
-				B00000000000000000000008 /* TaskListView.swift in Sources */,
-				B00000000000000000000009 /* TaskRowView.swift in Sources */,
-				B0000000000000000000000A /* SettingsView.swift in Sources */,
-				B0000000000000000000000B /* MarkdownFolderBookmark.swift in Sources */,
-				B0000000000000000000000C /* MarkdownTaskSource.swift in Sources */,
-				B0000000000000000000000D /* DrawerMotion.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		I00000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000001 /* Sundries */;
+			targetProxy = H00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F00000000000000000000004 /* Debug */ = {
@@ -229,7 +235,10 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -296,6 +305,7 @@
 		F00000000000000000000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Sundries;
 				CODE_SIGN_ENTITLEMENTS = Sundries/Sundries.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -305,7 +315,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.manik.Sundries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -318,6 +331,7 @@
 		F00000000000000000000007 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Sundries;
 				CODE_SIGN_ENTITLEMENTS = Sundries/Sundries.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -327,13 +341,50 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.manik.Sundries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		F00000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.manik.SundriesTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sundries.app/Contents/MacOS/Sundries";
+			};
+			name = Debug;
+		};
+		F00000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.manik.SundriesTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sundries.app/Contents/MacOS/Sundries";
 			};
 			name = Release;
 		};
@@ -345,6 +396,15 @@
 			buildConfigurations = (
 				F00000000000000000000004 /* Debug */,
 				F00000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000002 /* Build configuration list for PBXNativeTarget "SundriesTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000008 /* Debug */,
+				F00000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -41,12 +41,21 @@ struct TaskSourceDescriptor: Identifiable, Hashable, Sendable {
     )
 }
 
+/// Lets a source classify its own errors, so the store never has to know which
+/// adapter it is talking to. A Markdown folder that has gone missing and, later,
+/// an expired API credential are the same shape of problem: the user has to
+/// change something, not retry.
+protocol SourceIssueRepresentable: Error {
+    var sourceIssueKind: SourceIssue.Kind { get }
+}
+
 /// Something wrong with a configured source, attributed to the source it belongs to
 /// so the UI can show it against that row rather than as a loose banner.
 struct SourceIssue: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        /// A folder was chosen once, but its bookmark no longer resolves.
-        case folderUnresolvable
+        /// The source cannot be used until its setup changes — a folder that no
+        /// longer resolves today, a credential that expired tomorrow.
+        case needsSetup
         /// Reading from or writing to an otherwise-configured source failed.
         case operationFailed
     }
@@ -57,21 +66,23 @@ struct SourceIssue: Equatable, Sendable {
 
     var symbolName: String {
         switch kind {
-        case .folderUnresolvable: "exclamationmark.triangle.fill"
+        case .needsSetup: "exclamationmark.triangle.fill"
         case .operationFailed: "exclamationmark.circle.fill"
         }
     }
 
     static let markdownFolderUnresolvable = SourceIssue(
         sourceID: TaskSourceDescriptor.markdown.id,
-        kind: .folderUnresolvable,
+        kind: .needsSetup,
         message: "Sundries lost access to the folder you chose. Choose it again to reconnect."
     )
 
-    static func operationFailed(_ error: Error, sourceID: String) -> SourceIssue {
+    /// Sources that describe their own errors get the kind they asked for.
+    /// Anything else is treated as a transient failure of the operation.
+    static func from(_ error: Error, sourceID: String) -> SourceIssue {
         SourceIssue(
             sourceID: sourceID,
-            kind: .operationFailed,
+            kind: (error as? SourceIssueRepresentable)?.sourceIssueKind ?? .operationFailed,
             message: error.localizedDescription
         )
     }
