@@ -41,12 +41,6 @@ enum TaskSourceLocation: Hashable, Sendable {
     case markdown(MarkdownTaskLocation)
 }
 
-struct MarkdownTaskLocation: Hashable, Sendable {
-    let relativePath: String
-    let lineNumber: Int
-    let originalLine: String
-}
-
 enum TaskSection: Int, CaseIterable, Identifiable, Sendable {
     case overdue
     case today
